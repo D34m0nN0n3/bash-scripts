@@ -30,7 +30,7 @@ pass_count=0 ; fail_count=0 ;exist_count=0 ; success_count=0
 SUDO='/usr/bin/sudo'
 
 # Export LANG so we get consistent results
-# For instance, fr_FR uses comma (,) as the decimal separator.
+# For instance, en_US uses comma (,) as the decimal separator.
 export LANG=en_US.UTF-8
 
 function pad {
