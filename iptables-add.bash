@@ -199,9 +199,9 @@ $IPT -A INPUT -p icmp -j DROP
 $IPT -A OUTPUT -p icmp -j ACCEPT
 # === SSH ENABLED ===
 $IPT -A INPUT -p tcp -m state --state NEW --dport 22 -m recent --name ssh --update --seconds 25 -j DROP
-$IPT -A INPUT -p tcp -m state --state NEW --dport 22 -s 10.0.0.0/8 -m recent --name ssh --set -j ACCEPT
-# === LOG ENABLED ===
 $IPT -A INPUT -p tcp -m state --state NEW --dport 22 -j LOG --log-prefix "SSH-WARNING: " --log-level warning
+# === SSH ALLOW ===
+$IPT -A INPUT -p tcp -m state --state NEW --dport 22 -s 10.0.0.0/8 -m recent --name ssh --set -j ACCEPT
 # === STOP SCAN ===
 $IPT -A INPUT -p tcp --tcp-flags ALL FIN -m limit --limit 1/m --limit-burst 1  -j LOG --log-prefix "FIN-SCAN: " --log-level info
 $IPT -A INPUT -p tcp --tcp-flags ALL FIN -j DROP
