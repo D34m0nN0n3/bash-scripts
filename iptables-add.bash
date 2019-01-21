@@ -1,13 +1,9 @@
 #!/usr/bin/env bash
-#
+# Copyright (C) 2019 Dmitriy Prigoda <deamon.none@gmail.com> 
+# This script is free software: Everyone is permitted to copy and distribute verbatim copies of 
+# the GNU General Public License as published by the Free Software Foundation, either version 3
+# of the License, but changing it is not allowed.
 # For installing iptables firewall!
-# 
-# <blink>
-   ###################### IMPORTANT ########################
-   ###### DO NOT MAKE ANY CHANGES TO THIS FILE. IT IS ######
-   ######        MAINTAINED BY Prigoda Dmitriy.       ######
-   #########################################################
-# </blink>
 
 if [[ $EUID -ne 0 ]]; then
    echo "[-] This script must be run as root" 1>&2
@@ -25,7 +21,7 @@ function panic {
 }
 
 # initialize PRINT_* counters to zero
-pass_count=0 ; fail_count=0 ;exist_count=0 ; success_count=0
+pass_count=0 ; fail_count=0 ; exist_count=0 ; success_count=0
 
 SUDO='/usr/bin/sudo'
 
@@ -47,7 +43,7 @@ function print_EXIST {
 
 function print_FAIL {
   echo -e "$@ \e[1;31mFAIL\e[0;39m\n"
-  let exist_count++
+  let fail_count++
   return 0
 }
 
@@ -113,9 +109,19 @@ IPTABLES_CUSTEM=/etc/sysconfig/custom
 
 # Create scripts configuration
 # Main script whit default rules
+# <blink>
+   ###################### IMPORTANT ########################
+   ###### DO NOT MAKE ANY CHANGES TO THIS FILE. IT IS ######
+   ######        MAINTAINED BY Prigoda Dmitriy.       ######
+   #########################################################
+# </blink>
 if [ ! -f $IPTABLES_CONFIG ]; then
 cat << EOF > $IPTABLES_CONFIG
 #!/usr/bin/env bash
+if [[ $EUID -ne 0 ]]; then
+   echo "[-] This script must be run as root" 1>&2
+   exit 1
+fi
 #
 # Windows file conver dos2unix.
 #
@@ -216,10 +222,10 @@ $IPT -A INPUT -p tcp --tcp-flags ALL NONE -j DROP
 $IPT -A INPUT -p tcp --tcp-flags ALL URG,PSH,SYN,FIN -m limit --limit 1/m --limit-burst 1 -j LOG --log-prefix "NMAP-ID: " --log-level info
 $IPT -A INPUT -p tcp --tcp-flags ALL URG,PSH,SYN,FIN -j DROP
 # === RATE LIMITING ===
-$IPT -A INPUT -p tcp --syn -m limit --limit 180/s --limit-burst 10000 -j ACCEPT
-$IPT -A INPUT -p tcp --syn -j DROP
-$IPT -A INPUT -p udp -m state --state NEW -m limit --limit 24/s --limit-burst 10000 -j ACCEPT
-$IPT -A INPUT -p udp -m state --state NEW -j DROP
+#$IPT -A INPUT -p tcp --syn -m limit --limit 180/s --limit-burst 10000 -j ACCEPT
+#$IPT -A INPUT -p tcp --syn -j DROP
+#$IPT -A INPUT -p udp -m state --state NEW -m limit --limit 24/s --limit-burst 10000 -j ACCEPT
+#$IPT -A INPUT -p udp -m state --state NEW -j DROP
 }
 
 # +++ Custom rules +++
