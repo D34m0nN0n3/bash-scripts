@@ -1,6 +1,9 @@
 #!/usr/bin/env bash
 # The file we will be editing DNS zone.
-#
+# Copyright (C) 2019 Dmitriy Prigoda <deamon.none@gmail.com> 
+# This script is free software: Everyone is permitted to copy and distribute verbatim copies of 
+# the GNU General Public License as published by the Free Software Foundation, either version 3
+# of the License, but changing it is not allowed.
 #*********************************************************************************************************************
 #.vim plugin
 #function! UPDSERIAL(date, num)
@@ -12,12 +15,6 @@
 #
 #command Soa :%s/\(2[0-9]\{7}\)\([0-9]\{2}\)\(\s*;\s*Serial\)/\=UPDSERIAL(subm atch(1), submatch(2)) . submatch(3)/gc
 #*********************************************************************************************************************
-# <blink>
-   ###################### IMPORTANT ########################
-   ###### DO NOT MAKE ANY CHANGES TO THIS FILE. IT IS ######
-   ######        MAINTAINED BY Prigoda Dmitriy.       ######
-   #########################################################
-# </blink>
 
 if [[ $EUID -ne 0 ]]; then
    echo "[-] This script must be run as root" 1>&2
@@ -78,7 +75,7 @@ function print_PASS {
 
 function print_FAIL {
   echo -e "$@ \e[1;31mFAIL\e[0;39m\n"
-  let exist_count++
+  let fail_count++
   return 0
 }
 
