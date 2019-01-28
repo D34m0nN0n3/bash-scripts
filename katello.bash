@@ -1,5 +1,9 @@
 #!/usr/bin/env bash
-# Author: Dmitriy Prigoda
+# Copyright (C) 2019 Dmitriy Prigoda <deamon.none@gmail.com> 
+# This script is free software: Everyone is permitted to copy and distribute verbatim copies of 
+# the GNU General Public License as published by the Free Software Foundation, either version 3
+# of the License, but changing it is not allowed.
+# This scripr the client registration on katello servers.
 
 ARGCHECK=$#
 IDSERV=null
@@ -41,9 +45,9 @@ function print_SUCCESS {
 
 function print_usage {
 cat <<EOF
-Registration this server on Katello. 
+Registration this client on Katello. 
      Options:
-        -s <service>    Specify service name or ip address.
+        -s <service>    Specify server name or ip address.
         -k <key>        This activation key may be used during system registration.
         -u <url>        The BASEURL repositories.
 EOF
