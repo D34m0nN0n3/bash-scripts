@@ -5,6 +5,12 @@
 # of the License, but changing it is not allowed.
 # Some distributions enable saving previous boot information 
 # by default, while others disable this feature.
+# <blink>
+   ###################### IMPORTANT ########################
+   ###### DO NOT MAKE ANY CHANGES TO THIS FILE. IT IS ######
+   ######        MAINTAINED BY Prigoda Dmitriy.       ######
+   #########################################################
+# </blink>
 
 if [[ $EUID -ne 0 ]]; then
    echo "[-] This script must be run as root" 1>&2
