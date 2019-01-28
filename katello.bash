@@ -183,5 +183,5 @@ function reboot_host {
 }
 
 disable_repo ; temp_repo && reg_host && foreman_user && update_host && reboot_host
-exit 0
 #END
+exit 0
