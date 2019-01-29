@@ -112,14 +112,13 @@ echo "baseurl = ${IDDN}" >> /etc/yum.repos.d/temp.repo ;
 
 function reg_host {
   pad "The client registration"
-curl --insecure --output /tmp/katello-ca-consumer-latest.noarch.rpm http://${IDSERV}/pub/katello-ca-consumer-latest.noarch.rpm > /dev/null 2>&1 &&
-yum localinstall /tmp/katello-ca-consumer-latest.noarch.rpm -y > /dev/null 2>&1 &&
-yum install katello-agent -y > /dev/null 2>&1 &&
+yum localinstall http://${IDSERV}/pub/katello-ca-consumer-latest.noarch.rpm -y > /dev/null 2>&1 &&
   if [[ "${IDKEY}" == "" || "${IDKEY}" == *" "* ]]; then
   echo "Error! Invalid key!"
   exit 1
   fi
 subscription-manager register --org="Default_Organization" --activationkey="${IDKEY}" --force > /dev/null 2>&1 &&
+yum install katello-agent -y > /dev/null 2>&1 &&
 rm -f /tmp/katello-ca-consumer-latest.noarch.rpm > /dev/null 2>&1 &&
 rm -f /etc/yum.repos.d/temp.repo > /dev/null 2>&1 ;
   RESULT=$?
@@ -137,7 +136,7 @@ function foreman_user {
 # Add Parameter >> Specify Name as remote_execution_ssh_user and set its value to [foreman-proxy-user] >>
 # click Submit.
 # The ceate user for remote execution features Katello
-userdel --remove foreman-proxy-user --force > /dev/null 2>&1 &&
+userdel --remove foreman-proxy-user --force > /dev/null 2>&1 ;
 useradd --create-home --comment "User for remote execution features Katello" --system foreman-proxy-user > /dev/null 2>&1 &&
 # The add authorized key for remote execution features Katello
 mkdir -p ~foreman-proxy-user/.ssh/ > /dev/null 2>&1 &&
