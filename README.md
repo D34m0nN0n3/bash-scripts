@@ -5,3 +5,4 @@ Scripts for RHEL/CentOS
 3. journl-past-boot.bash -script enabled past boot log.
 4. zone-edit.bash - script for edit dns files zone with incriment change serial number.
 5. katello.bash - script for registration on katello server.
+6. bind-install.bash - script install ISC BIND (https://www.isc.org/downloads/bind/) server.
