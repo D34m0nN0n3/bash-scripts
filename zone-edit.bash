@@ -47,6 +47,8 @@ SERNUM=$(grep -hE '[0-9]{9,10}' $FILE)
 SERTMP="${DATE}00"
 SERNEW=''
 BIND=''
+CHROOT='named-chroot.service'
+NOCHROOT='named.service'
 
 # Export LANG so we get consistent results
 # For instance, fr_FR uses comma (,) as the decimal separator.
@@ -152,13 +154,15 @@ fi
 
 # Restart BIND 
 pad "Restarting BIND:"
-	for SERV in named.service named-chroot.service
+function binding {
+	for SERV in {$CHROOT,$NOCHROOT}
 	do
 	systemctl is-active $SERV > /dev/null && BIND="$SERV" && return 0
 	done
 	echo Error! No service is active.
 	return 1
-systemctl restart $BIND > /dev/null
+}
+binding && systemctl restart $BIND > /dev/null 2>&1
 if [ $? -ne 0 ]; then
     print_FAIL
     exit 1
