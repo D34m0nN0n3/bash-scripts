@@ -180,11 +180,18 @@ $IPT -t mangle -F
 $IPT -P INPUT DROP
 $IPT -P FORWARD DROP
 $IPT -P OUTPUT ACCEPT
-# === STATE RULES ===
+# +++ STATE RULES +++
+# === Drop fragments in all chains ===
+$IPT -t mangle -A PREROUTING -f -j DROP
+# === Drop TCP packets that are new and are not SYN ===
+$IPT -t mangle -A PREROUTING -p tcp ! --syn -m conntrack --ctstate NEW -j DROP
+# === Drop invalid packets ===
 $IPT -A INPUT -m state --state INVALID -j DROP
 $IPT -A FORWARD -m state --state INVALID -j DROP
 $IPT -A INPUT -m state --state ESTABLISHED,RELATED -j ACCEPT
 $IPT -A FORWARD -m state --state ESTABLISHED,RELATED -j ACCEPT
+# === Drop SYN packets with suspicious MSS value ===
+$IPT -t mangle -A PREROUTING -p tcp -m conntrack --ctstate NEW -m tcpmss ! --mss 536:65535 -j DROP
 # === LOCALHOST ===
 $IPT -A FORWARD ! -i lo -s 127.0.0.1 -j DROP
 $IPT -A INPUT ! -i lo -s 127.0.0.1 -j DROP
@@ -192,35 +199,51 @@ $IPT -A FORWARD ! -i lo -d 127.0.0.1 -j DROP
 $IPT -A INPUT ! -i lo -d 127.0.0.1 -j DROP
 $IPT -A INPUT -s 127.0.0.1 -j ACCEPT
 $IPT -A OUTPUT -d 127.0.0.1 -j ACCEPT
+# === Block spoofed packets ===
+$IPT -t mangle -A PREROUTING -s 127.0.0.0/8 ! -i lo -j DROP
+$IPT -t mangle -A PREROUTING -s 0.0.0.0/8 -j DROP
+$IPT -t mangle -A PREROUTING -s 169.254.0.0/16 -j DROP
+$IPT -t mangle -A PREROUTING -s 172.16.0.0/12 -j DROP
+$IPT -t mangle -A PREROUTING -s 192.0.2.0/24 -j DROP
+$IPT -t mangle -A PREROUTING -s 192.168.0.0/16 -j DROP
+$IPT -t mangle -A PREROUTING -s 224.0.0.0/3 -j DROP
+$IPT -t mangle -A PREROUTING -s 240.0.0.0/5 -j DROP
+# === STOP SCAN ===
+$IPT -t mangle -A PREROUTING -p tcp --tcp-flags ALL FIN -m limit --limit 1/m --limit-burst 1  -j LOG --log-prefix "FIN-SCAN: " --log-level info
+$IPT -t mangle -A PREROUTING -p tcp --tcp-flags ALL FIN -j DROP
+$IPT -t mangle -A PREROUTING -p tcp --tcp-flags ALL SYN,FIN -m limit --limit 1/m --limit-burst 1 -j LOG --log-prefix "SYNFIN-SCAN: " --log-level info
+$IPT -t mangle -A PREROUTING -p tcp --tcp-flags ALL SYN,FIN -j DROP
+$IPT -t mangle -A PREROUTING -p tcp --tcp-flags ALL URG,PSH,FIN -m limit --limit 1/m --limit-burst 1 -j LOG --log-prefix "NMAP-XMAS-SCAN: " --log-level info
+$IPT -t mangle -A PREROUTING -p tcp --tcp-flags ALL URG,PSH,FIN -j DROP
+$IPT -t mangle -A PREROUTING -p tcp --tcp-flags ACK,FIN FIN -m limit --limit 1/m --limit-burst 1 -j LOG --log-prefix "FIN scan: " --log-level info
+$IPT -t mangle -A PREROUTING -p tcp --tcp-flags ACK,FIN FIN -j DROP
+$IPT -t mangle -A PREROUTING -p tcp --tcp-flags ACK,PSH PSH -m limit --limit 1/m --limit-burst 1 -j LOG --log-prefix "PSH scan: " --log-level info
+$IPT -t mangle -A PREROUTING -p tcp --tcp-flags ACK,PSH PSH -j DROP
+$IPT -t mangle -A PREROUTING -p tcp --tcp-flags ACK,URG URG -m limit --limit 1/m --limit-burst 1 -j LOG --log-prefix "URG scan: " --log-level info
+$IPT -t mangle -A PREROUTING -p tcp --tcp-flags ACK,URG URG -j DROP
+$IPT -t mangle -A PREROUTING -p tcp --tcp-flags ALL ALL -m limit --limit 1/m --limit-burst 1 -j LOG --log-prefix "XMAS scan: " --log-level info
+$IPT -t mangle -A PREROUTING -p tcp --tcp-flags ALL ALL -j DROP
+$IPT -t mangle -A PREROUTING -p tcp --tcp-flags ALL NONE -m limit --limit 1/m --limit-burst 1 -j LOG --log-prefix "NULL scan: " --log-level info
+$IPT -t mangle -A PREROUTING -p tcp --tcp-flags ALL NONE -j DROP
+$IPT -t mangle -A PREROUTING -p tcp --tcp-flags ALL URG,PSH,SYN,FIN -m limit --limit 1/m --limit-burst 1 -j LOG --log-prefix "NMAP-ID: " --log-level info
+$IPT -t mangle -A PREROUTING -p tcp --tcp-flags ALL URG,PSH,SYN,FIN -j DROP
+$IPT -t mangle -A PREROUTING -p tcp --tcp-flags ALL SYN,RST,ACK,FIN,URG -j DROP
+$IPT -t mangle -A PREROUTING -p tcp --tcp-flags FIN,SYN,RST,PSH,ACK,URG NONE -j DROP
 # === ICMP ENABLED ===
-$IPT -A INPUT -p icmp -m limit --limit 1/s --limit-burst 1 -j ACCEPT
-$IPT -A INPUT -p icmp -m limit --limit 1/s --limit-burst 100 -j LOG --log-prefix "ICMP FLOOD: " --log-level info
-$IPT -A INPUT -p icmp -j DROP
+$IPT -t mangle -A PREROUTING -p icmp -m limit --limit 1/s --limit-burst 1 -j ACCEPT
+$IPT -t mangle -A PREROUTING -p icmp -m limit --limit 1/s --limit-burst 100 -j LOG --log-prefix "ICMP FLOOD: " --log-level info
+$IPT -t mangle -A PREROUTING -p icmp -m recent --name icmp --update --seconds 60 --hitcount 75 -j DROP
 $IPT -A OUTPUT -p icmp -j ACCEPT
 # === SSH ENABLED ===
-$IPT -A INPUT -p tcp -m state --state NEW --dport 22 -m recent --name ssh --update --seconds 25 -j DROP
+$IPT -A INPUT -p tcp -m state --state NEW --dport 22 -m recent --name ssh --update --seconds 25 --hitcount 3 -j DROP
 $IPT -A INPUT -p tcp -m state --state NEW --dport 22 -j LOG --log-prefix "SSH-WARNING: " --log-level warning
 # === SSH ALLOW ===
 $IPT -A INPUT -p tcp -m state --state NEW --dport 22 -s 10.0.0.0/8 -m recent --name ssh --set -j ACCEPT
-# === STOP SCAN ===
-$IPT -A INPUT -p tcp --tcp-flags ALL FIN -m limit --limit 1/m --limit-burst 1  -j LOG --log-prefix "FIN-SCAN: " --log-level info
-$IPT -A INPUT -p tcp --tcp-flags ALL FIN -j DROP
-$IPT -A INPUT -p tcp --tcp-flags ALL SYN,FIN -m limit --limit 1/m --limit-burst 1 -j LOG --log-prefix "SYNFIN-SCAN: " --log-level info
-$IPT -A INPUT -p tcp --tcp-flags ALL SYN,FIN -j DROP
-$IPT -A INPUT -p tcp --tcp-flags ALL URG,PSH,FIN -m limit --limit 1/m --limit-burst 1 -j LOG --log-prefix "NMAP-XMAS-SCAN: " --log-level info
-$IPT -A INPUT -p tcp --tcp-flags ALL URG,PSH,FIN -j DROP
-$IPT -A INPUT -p tcp --tcp-flags ACK,FIN FIN -m limit --limit 1/m --limit-burst 1 -j LOG --log-prefix "FIN scan: " --log-level info
-$IPT -A INPUT -p tcp --tcp-flags ACK,FIN FIN -j DROP
-$IPT -A INPUT -p tcp --tcp-flags ACK,PSH PSH -m limit --limit 1/m --limit-burst 1 -j LOG --log-prefix "PSH scan: " --log-level info
-$IPT -A INPUT -p tcp --tcp-flags ACK,PSH PSH -j DROP
-$IPT -A INPUT -p tcp --tcp-flags ACK,URG URG -m limit --limit 1/m --limit-burst 1 -j LOG --log-prefix "URG scan: " --log-level info
-$IPT -A INPUT -p tcp --tcp-flags ACK,URG URG -j DROP
-$IPT -A INPUT -p tcp --tcp-flags ALL ALL -m limit --limit 1/m --limit-burst 1 -j LOG --log-prefix "XMAS scan: " --log-level info
-$IPT -A INPUT -p tcp --tcp-flags ALL ALL -j DROP
-$IPT -A INPUT -p tcp --tcp-flags ALL NONE -m limit --limit 1/m --limit-burst 1 -j LOG --log-prefix "NULL scan: " --log-level info
-$IPT -A INPUT -p tcp --tcp-flags ALL NONE -j DROP
-$IPT -A INPUT -p tcp --tcp-flags ALL URG,PSH,SYN,FIN -m limit --limit 1/m --limit-burst 1 -j LOG --log-prefix "NMAP-ID: " --log-level info
-$IPT -A INPUT -p tcp --tcp-flags ALL URG,PSH,SYN,FIN -j DROP
+# === Limit connections per source IP ===
+$IPT -A INPUT -p tcp -m connlimit --connlimit-above 111 -j REJECT --reject-with tcp-reset
+# === Limit RST packets ===
+$IPT -A INPUT -p tcp --tcp-flags RST RST -m limit --limit 2/s --limit-burst 2 -j ACCEPT
+$IPT -A INPUT -p tcp --tcp-flags RST RST -j DROP
 # === RATE LIMITING ===
 #$IPT -A INPUT -p tcp --syn -m limit --limit 180/s --limit-burst 10000 -j ACCEPT
 #$IPT -A INPUT -p tcp --syn -j DROP
@@ -325,6 +348,18 @@ print_EXIST
 return 1
 fi
 print_SUCCESS
+}
+
+function install_packages {
+  pad "Installing iptables firewall"
+  yum install iptables-services iptables-utils -y > /dev/null 2>&1
+  RESULT=$?
+  if [ "${RESULT}" -ne 0 ]; then
+    print_FAIL
+    echo "Error installing needed packages"
+    exit 132
+  fi
+  print_SUCCESS
 }
 
 install_packages && disable_firewalld && enable_iptables && create_scriptcfg
