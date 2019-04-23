@@ -182,17 +182,23 @@ controls  {
 
 logging {
 
-      category default       { default_log; };
-      category config        { default_log; };
-      category security      { security_log; };
-      category xfer-in       { xfer_log; };
-      category xfer-out      { xfer_log; };
-      category notify        { notify_log; };
-      category update        { update_log; };
-      category queries       { default_log; };
-      category client        { default_log; };
-      category lame-servers  { lame-servers_log; };
-      category rpz           { rpz_log; };
+      category default         { default_log; };
+      category config          { default_log; };
+      category security        { security_log; };
+      category xfer-in         { xfer_log; };
+      category xfer-out        { xfer_log; };
+      category notify          { notify_log; };
+      category update          { update_log; };
+      category queries         { default_log; };
+      category client          { default_log; };
+      category lame-servers    { lame_servers_log; };
+      category dnssec          { dnssec_log; };
+      category update          { ddns_log; };
+      category update-security { ddns_log; };
+      category rate-limit      { rate_limiting_log; };
+      category rpz             { rpz_log; };
+      category queries         { query-errors_log; };
+      category query-errors    { query-errors_log; };
         
       channel default_debug {
             file "data/named.run" versions 5 size 100M;
@@ -234,16 +240,44 @@ logging {
             print-severity yes;
             print-time yes;
       };        
-      channel lame-servers_log {
+      channel lame_servers_log {
             file "/var/log/lame-servers.log" versions 3 size 100M;
             severity notice;
             print-category yes;
             print-severity yes;
             print-time yes;
-        };
-        channel rpz_log {
+      };
+      channel dnssec_log {
+            file "/var/log/dnssec.log" versions 3 size 20M;
+            severity info;
+            print-category yes;
+            print-severity yes;
+            print-time yes;
+      };
+      channel ddns_log {
+            file "/var/log/ddns.log" versions 3 size 20M;
+            severity info;
+            print-category yes;
+            print-severity yes;
+            print-time yes;
+      };
+      channel rate_limiting_log {
+            file "/var/log/rate-limiting.log" versions 5 size 50M;
+            severity info;
+            print-category yes;
+            print-severity yes;
+            print-time yes;
+      };
+      channel rpz_log {
             file "/var/log/rpz.log" versions 3 size 100M;
             severity info;
+            print-category yes;
+            print-severity yes;
+            print-time yes;
+      };
+      channel query_errors_log {
+            file "/var/log/query-errors.log" versions 5 size 50M;
+            severity dynamic;
             print-category yes;
             print-severity yes;
             print-time yes;
