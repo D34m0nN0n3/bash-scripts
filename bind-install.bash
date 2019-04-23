@@ -197,8 +197,8 @@ logging {
       category update-security { ddns_log; };
       category rate-limit      { rate_limiting_log; };
       category rpz             { rpz_log; };
-      category queries         { query-errors_log; };
-      category query-errors    { query-errors_log; };
+      category queries         { query_errors_log; };
+      category query-errors    { query_errors_log; };
         
       channel default_debug {
             file "data/named.run" versions 5 size 100M;
