@@ -152,9 +152,9 @@ options {
       dnssec-validation            auto;
       dnssec-lookaside             auto;
 
-      rate-limit		           { responses-per-second 10;
-				           referrals-per-second 5;
-				           nodata-per-second 5;
+      rate-limit		 { responses-per-second 10;
+				   referrals-per-second 5;
+				   nodata-per-second 5;
                                    errors-per-second 5;
                                    all-per-second 20;
                                    min-table-size 500;
