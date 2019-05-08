@@ -166,6 +166,10 @@ net.ipv6.conf.all.disable_ipv6 = 1
 net.ipv6.conf.default.disable_ipv6 = 1
 EOF
 sysctl -p > /dev/null 2>&1
+cat <<-'EOF' > /etc/modprobe.d/ip_pkt_list_tot.conf
+options xt_recent ip_pkt_list_tot=75
+EOF
+modprobe -r xt_recent && modprobe xt_recent > /dev/null 2>&1
 RESULT=$?
   if [ "${RESULT}" -ne 0 ]; then
     print_FAIL
