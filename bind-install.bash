@@ -290,7 +290,7 @@ include "/etc/named/views.conf";
 EOF
 
 cat <<'EOF' > /etc/named/views.conf
-acl rzd {
+acl work {
 	10/8;
 	};
 	
@@ -311,11 +311,11 @@ view "internal" {
       recursion yes;
       additional-from-auth yes;
       additional-from-cache yes;
-	forward first;
-	forwarders {
-	  10.248.0.180;
-	  10.248.0.181;
-	  };
+      forward first;
+      forwarders {
+	10.248.0.180;
+	10.248.0.181;
+	};
 			
       response-policy { zone "blockeddomain.hosts"; 
 	  zone "dbl.rpz.spamhaus.org" policy nxdomain;
@@ -328,51 +328,41 @@ view "internal" {
 zone "blockeddomain.hosts" IN {
       type master;
       file "/var/named/blockeddomain.hosts";
-	allow-update { none; };
+      allow-update { none; };
       };
 				
 zone "dbl.rpz.spamhaus.org" {
 	type slave;
 	file "/var/named/slaves/dbl.rpz.spamhaus.org";
-	masters { 34.194.195.25;
-                35.156.219.71;
-		  };
+	masters { 34.194.195.25; 35.156.219.71; };
 	allow-transfer { none; };
 	};
 
 zone "botnetcc.rpz.spamhaus.org" {
 	type slave;
 	file "/var/named/slaves/botnetcc.rpz.spamhaus.org";
-	masters { 34.194.195.25;
-		    35.156.219.71;
-		  };
+	masters { 34.194.195.25; 35.156.219.71; };
 	allow-transfer { none; };
 	};
 
 zone "malware-adware.rpz.spamhaus.org" {
 	type slave;
 	file "/var/named/slaves/malware-adware.rpz.spamhaus.org";
-	masters { 34.194.195.25;
-		    35.156.219.71;
-		  };
+	masters { 34.194.195.25; 35.156.219.71; };
 	allow-transfer { none; };
 	};
 					
 zone "malware-aggressive.rpz.spamhaus.org" {
 	type slave;
 	file "/var/named/slaves/malware-aggressive.rpz.spamhaus.org";
-	masters { 34.194.195.25;
-		    35.156.219.71;
-		  };
+	masters { 34.194.195.25; 35.156.219.71; };
 	allow-transfer { none; };
 	};
 
 zone "drop.rpz.spamhaus.org" {
 	type slave;
 	file "/var/named/slaves/drop.rpz.spamhaus.org";
-	masters { 34.194.195.25;
-		    35.156.219.71;
-		  };
+	masters { 34.194.195.25; 35.156.219.71; };
 	allow-transfer { none; };
 	};
 
