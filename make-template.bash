@@ -61,7 +61,7 @@ unset HISTFILE
 
 # Configure sys-unconfig
 sys-unconfig
-systemctl enable initial-setup.service && touch /.unconfigured
+touch /.unconfigured
 
 # Poweroff
 systemctl halt
