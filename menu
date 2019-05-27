@@ -1,0 +1,125 @@
+#!/usr/bin/env bash
+# Copyright (C) 2019 Dmitriy Prigoda <deamon.none@gmail.com>
+# This script is free software: Everyone is permitted to copy and distribute verbatim copies of
+# the GNU General Public License as published by the Free Software Foundation, either version 3
+# of the License, but changing it is not allowed.
+
+# Export LANG so we get consistent results
+# For instance, en_US uses comma (,) as the decimal separator.
+export LANG=en_US.UTF-8
+
+# Function to display menus
+function show_menus {
+cat << EOF
+Please select the desired menu item:
+
+    0) Show administrators contacts info.
+    1) Primary info (BIOS, CPU, OS)
+    2) Memory info
+    3) Processes info
+    4) Disks info
+    5) Network info
+    6) Get sos report
+    7) Reboot
+    8) Poweroff
+
+EOF
+}
+
+function sysinfo {
+if [ $xsos -ne 0 ];then
+xsos -b && xsos -c && lscpu && xsos -o
+else
+dmidecode --type bios && lscpu
+fi
+}
+
+function meminfo {
+if [ $xsos -ne 0 ];then
+xsos -m
+else
+free -m && echo -e '' && MemTotal=$(gawk '/^MemTotal/{printf "%.2f\n", $2/1024/1024}' /proc/meminfo) && echo -n "{MemTotal: ${c[0]} $MemTotal GiB ${c[H3]}}${c[0]}" && MemAvailable=$(gawk '/^MemAvailable/{printf "%.2f\n", $2/1024/1024}' /proc/meminfo) && echo -n "{MemAvailable: ${c[0]} $MemAvailable GiB ${c[H3]}}${c[0]}" && MemFree=$(gawk '/^MemFree/{printf "%.2f\n", $2/1024/1024}' /proc/meminfo) && echo -n "{MemFree: ${c[0]} $MemFree GiB ${c[H3]}}${c[0]}"
+fi
+}
+
+function psinfo {
+if [ $xsos -ne 0 ];then
+xsos -p
+else
+echo "Top processes by MEMORY usage" && top -n 1 -b -o %MEM > /tmp/tt && cat /tmp/tt | sed -n 7,17p && echo -e "\nTop processes by CPU usage" && top -n 1 -b -o %CPU > /   tmp/tt && cat /tmp/tt | sed -n 7,17p
+fi
+}
+
+function diskinfo {
+if [ $xsos -ne 0 ];then
+xsos -d && df -H -x tmpfs -x devtmpfs
+else
+lsblk -d && df -H -x tmpfs -x devtmpfs
+fi
+}
+
+function netinfo {
+if [ $xsos -ne 0 ];then
+xsos -n && xsos -e
+else
+ip -s link && netstat -lntup && echo "Network Processes:" && lsof -i
+fi
+}
+
+# Read input from the keyboard and take a action
+function read_options {
+local choice
+read -p "Select menu number: " choice
+case $choice in
+    0) clear; echo "Administrators contacts info";;
+    1) clear; sysinfo;;
+    2) clear; meminfo;;
+    3) clear; psinfo;;
+    4) clear; diskinfo;;
+    5) clear; netinfo;;
+    6) clear; sosreport --batch: --tmp-dir /home/smenaptk;;
+    7)
+while true; do
+    read -p "Are you sure?: " yn
+    case $yn in
+        [Yy]* ) systemctl reboot; break;;
+        [Nn]* ) break;;
+            * ) echo "Please answer yes or no. ";;
+        esac
+done
+;;
+    8)
+while true; do
+    read -p "Are you sure?: " yn
+    case $yn in
+        [Yy]* ) systemctl poweroff; break;;
+        [Nn]* ) exit;;
+            * ) echo "Please answer yes or no. ";;
+    esac
+done
+;;
+    *) echo -e "Error: Wrong Option selected" && sleep 3
+    ;;
+esac
+read -p "Press [Enter] key to continue..." fackEnterKey
+}
+
+# Trap CTRL+C, CTRL+Z and quit singles
+trap '' SIGINT SIGQUIT SIGTSTP
+
+# Main log1ic - infinite loop
+check=`whereis xsos | awk {'print $2'}`
+xsos=0
+if [[ "$check" != "" ]];then
+    xsos=1
+fi
+
+while true
+do
+    # Clean the screen
+    clear
+    # Show menu
+    show_menus
+    read_options
+done
+#END
