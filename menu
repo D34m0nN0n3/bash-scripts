@@ -26,6 +26,14 @@ Please select the desired menu item:
 EOF
 }
 
+function admcontact {
+if [[ $(cat /etc/passwd | grep admin | awk -F ":" '{print $5}')  ]]; then
+    cat /etc/passwd | grep admin | awk -F ":" '{print $1, $5}'
+else
+    echo "Sorry, no data"
+fi
+}
+
 function sysinfo {
 if [ $xsos -ne 0 ];then
 xsos -b && xsos -c && lscpu && xsos -o
@@ -71,7 +79,7 @@ function read_options {
 local choice
 read -p "Select menu number: " choice
 case $choice in
-    0) clear; echo "Administrators contacts info";;
+    0) clear; admcontact;;
     1) clear; sysinfo;;
     2) clear; meminfo;;
     3) clear; psinfo;;
