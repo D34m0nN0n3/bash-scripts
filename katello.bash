@@ -6,16 +6,20 @@
 # This scripr the client registration on katello servers.
 
 ARGCHECK=$#
-IDSERV=null
-IDKEY=null
-IDDN=null
-MINARG=3
+IDSERV='null'
+IDKEY='null'
+IDORG=''
+MINARG=2
 
 PACKAGES=( bash )
 
 if [[ $EUID -ne 0 ]]; then
    echo "[-] This script must be run as root" 1>&2
    exit 1
+fi
+
+if [[ -z ${IDORG} ]]; then
+   IDORG='Default_Organization'
 fi
 
 function pad {
@@ -47,9 +51,11 @@ function print_usage {
 cat <<EOF
 Registration this client on Katello. 
      Options:
-        -s <service>    Specify server name or ip address.
-        -k <key>        This activation key may be used during system registration.
-        -u <url>        The BASEURL repositories.
+        -s <service>       Specify server name or ip address server repository.
+        -k <key>           This activation key may be used during system registration.
+        -o <organization>  Specify organization name on Satellite/Katello server.
+    
+     Example: bash katello.bash -s <name> -k <key> -o <organization>
 EOF
 }
 
@@ -58,7 +64,7 @@ print_usage
 exit 1
 fi
 
-while getopts "s:k:u:" OPTION
+while getopts "s:k:o" OPTION
 do
      case $OPTION in
          s)
@@ -67,8 +73,8 @@ do
          k)
              IDKEY=${OPTARG}
              ;;
-         u)
-             IDDN=${OPTARG}
+         o)  
+             IDORG=${OPTARG}
              ;;
          *)
              exit 1
@@ -117,7 +123,7 @@ yum localinstall http://${IDSERV}/pub/katello-ca-consumer-latest.noarch.rpm -y >
   echo "Error! Invalid key!"
   exit 1
   fi
-subscription-manager register --org="Default_Organization" --activationkey="${IDKEY}" --force > /dev/null 2>&1 &&
+subscription-manager register --org="${IDORG}" --activationkey="${IDKEY}" --force > /dev/null 2>&1 &&
 yum install katello-agent -y > /dev/null 2>&1 &&
 rm -f /tmp/katello-ca-consumer-latest.noarch.rpm > /dev/null 2>&1 &&
 rm -f /etc/yum.repos.d/temp.repo > /dev/null 2>&1 ;
@@ -181,6 +187,6 @@ function reboot_host {
         done
 }
 
-disable_repo ; temp_repo && reg_host && foreman_user && update_host && reboot_host
+disable_repo ; reg_host && foreman_user && update_host && reboot_host
 #END
 exit 0
