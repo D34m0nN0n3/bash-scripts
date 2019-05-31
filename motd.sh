@@ -3,6 +3,7 @@
 # This script is free software: Everyone is permitted to copy and distribute verbatim copies of 
 # the GNU General Public License as published by the Free Software Foundation, either version 3
 # of the License, but changing it is not allowed.
+# Message of the day.
 PSA=`ps -Afl | wc -l`
 HOSTNAME=$(uname -n)
 KERNEL=$(uname -r)
