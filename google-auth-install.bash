@@ -4,6 +4,17 @@
 # the GNU General Public License as published by the Free Software Foundation, either version 3
 # of the License, but changing it is not allowed.
 
+# Export LANG so we get consistent results
+# For instance, fr_FR uses comma (,) as the decimal separator.
+export LANG=en_US.UTF-8
+
+PACKAGES=( bash )
+
+if [[ $EUID -ne 0 ]]; then
+   echo "[-] This script must be run as root" 1>&2
+   exit 1
+fi
+
 ### Compile Google Authenticator
 yum remove google-authenticator -y;
 yum install git-core qrencode pam-devel make gcc wget autoreconf unzip autoconf automake libtool -y;
@@ -34,3 +45,4 @@ sed -i -r 's@(ChallengeResponseAuthentication) no@\1 yes@g' /etc/ssh/sshd_config
 service sshd restart ;
 
 echo 'y' | google-authenticator -t -d -f -Q UTF8 -r 3 -R 30 2>&1 > ~/google_authenticator
+# EnD
