@@ -64,23 +64,27 @@ print_usage
 exit 1
 fi
 
-while getopts "s:k:o" OPTION
+if [ "${ARGCHECK}" -gt "3" ]; then
+while getopts "s:k:o:" OPTION
 do
      case $OPTION in
-         s)
-             IDSERV=${OPTARG}
-             ;;
-         k)
-             IDKEY=${OPTARG}
-             ;;
-         o)  
-             IDORG=${OPTARG}
-             ;;
-         *)
-             exit 1
-             ;;
+         s) IDSERV=${OPTARG} ;;
+         k) IDKEY=${OPTARG} ;;
+         o) IDORG=${OPTARG} ;;
+         *) exit 1 ;;
      esac
 done
+else
+while getopts "s:k:" OPTION
+do
+     case $OPTION in
+         s) IDSERV=${OPTARG} ;;
+         k) IDKEY=${OPTARG} ;;
+         *) exit 1 ;;
+     esac
+done
+fi
+
 
 function disable_repo {
   pad "Disable default repo"
@@ -93,24 +97,6 @@ sed -i 's,enabled\=1,enabled\=0,' /etc/yum/pluginconf.d/enabled_repos_upload.con
   if [ "${RESULT}" -ne 0 ]; then
     print_FAIL
     echo "Error can't disabled"
-    exit 1
-  fi
-  print_SUCCESS
-}
-
-function temp_repo {
-  pad "Enable temp repo"
-cat << 'EOF' > /etc/yum.repos.d/temp.repo
-[temp]
-name = temp
-enabled = 1
-gpgcheck = 0
-EOF
-echo "baseurl = ${IDDN}" >> /etc/yum.repos.d/temp.repo ;
-  RESULT=$?
-  if [ "${RESULT}" -ne 0 ]; then
-    print_FAIL
-    echo -n "Error can't enabled"
     exit 1
   fi
   print_SUCCESS
@@ -143,7 +129,7 @@ function foreman_user {
 # click Submit.
 # The ceate user for remote execution features Katello
 userdel --remove foreman-proxy-user --force > /dev/null 2>&1 ;
-useradd --create-home --comment "User for remote execution features Katello" --system foreman-proxy-user > /dev/null 2>&1 &&
+useradd --create-home --password $(python -c 'import crypt; print(crypt.crypt("$(base64 -w 16 /dev/urandom | tr -d /+ | head -n 1)"))') --comment "User for remote execution features Katello" --system foreman-proxy-user > /dev/null 2>&1 &&
 # The add authorized key for remote execution features Katello
 mkdir -p ~foreman-proxy-user/.ssh/ > /dev/null 2>&1 &&
 curl --insecure --output ~foreman-proxy-user/.ssh/authorized_keys https://${IDSERV}:9090/ssh/pubkey > /dev/null 2>&1 &&
@@ -189,4 +175,4 @@ function reboot_host {
 
 disable_repo ; reg_host && foreman_user && update_host && reboot_host
 #END
-exit 0
+exit
