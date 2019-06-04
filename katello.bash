@@ -53,7 +53,7 @@ Registration this client on Katello.
      Options:
         -s <service>       Specify server name or ip address server repository.
         -k <key>           This activation key may be used during system registration.
-        -o <organization>  Specify organization name on Satellite/Katello server.
+        -o <organization>  Specify organization name on Satellite/Katello server. (opcional)
     
      Example: bash katello.bash -s <name> -k <key> -o <organization>
 EOF
@@ -64,7 +64,7 @@ print_usage
 exit 1
 fi
 
-if [ "${ARGCHECK}" -gt "3" ]; then
+if [ "${ARGCHECK}" -gt "4" ]; then
 while getopts "s:k:o:" OPTION
 do
      case $OPTION in
