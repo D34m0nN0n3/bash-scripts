@@ -144,9 +144,9 @@ EOF
   if [ "${RESULT}" -ne 0 ]; then
     print_FAIL
     echo -n "Error can't adding user"
-    exit 1
+  else
+    print_SUCCESS
   fi
-  print_SUCCESS
 }
 
 function update_host {
