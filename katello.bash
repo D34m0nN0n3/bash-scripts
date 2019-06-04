@@ -173,6 +173,6 @@ function reboot_host {
         done
 }
 
-disable_repo ; reg_host && foreman_user && update_host && reboot_host
+disable_repo ; reg_host && foreman_user ; update_host && reboot_host
 #END
 exit
