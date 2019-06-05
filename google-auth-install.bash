@@ -19,8 +19,7 @@ if [[ $EUID -ne 0 ]]; then
 fi
 
 # Detecting login user info
-[[ -n "${USER:-}" && -z "${SUDO_USER:-}" ]] && login_user="${USER:-}" || login_user="${SUDO_USER:-}"
-[[ -z "${login_user}" ]] && login_user=$(logname 2> /dev/null)
+[[ -n "${SUDO_USER:-}" ]] && login_user="${SUDO_USER:-}" 2> /dev/null
 
 login_user_home="/home/${login_user}"
 login_ssh_authorize_path=${login_ssh_authorize_path:-"${login_user_home}/.ssh/authorized_keys"}
@@ -54,19 +53,18 @@ ln -fs ${gal_installation_dir}/lib/security/pam_google_authenticator.la /lib64/s
 sed -i '/#%PAM/a auth\ \ \ \ \ \ \ required\ \ \ \ \ pam_google_authenticator.so nullok' /etc/pam.d/sshd ;
 if [ -f "${login_ssh_authorize_path}" ]; then
    sed -i -r '/auth[[:space:]]+substack[[:space:]]+password-auth/s/^/#/' /etc/pam.d/sshd ;
+   echo -e 'AuthenticationMethods publickey,keyboard-interactive' >> /etc/ssh/sshd_config ;
 fi
 
 sed -i 's/#PermitRootLogin\ yes/PermitRootLogin\ no/g' /etc/ssh/sshd_config ;
 sed -i 's/#UseDNS\ yes/UseDNS\ no/g' /etc/ssh/sshd_config ;
 sed -i -r 's@(ChallengeResponseAuthentication) no@\1 yes@g' /etc/ssh/sshd_config ;
 
-
+exec sudo -u ${login_user} /bin/sh - << EOF
+echo 'y' | google-authenticator -t -d -f -Q UTF8 -r 3 -R 30 2>&1 > ${login_user_home}/google_authenticator
+EOF
 
 service sshd restart ;
-
-exec sudo -u ${USERNAME} /bin/sh - << EOF
-echo 'y' | google-authenticator -t -d -f -Q UTF8 -r 3 -R 30 2>&1 > ~/google_authenticator
-EOF
 
 # EnD
 exit
