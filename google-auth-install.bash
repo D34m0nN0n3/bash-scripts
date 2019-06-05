@@ -32,7 +32,7 @@ gal_installation_dir='/opt/googleAuthenticator'
 yum remove google-authenticator -y;
 yum install git-core qrencode pam-devel make gcc wget autoreconf unzip autoconf automake libtool -y;
 
-local git_link=${git_link:-"https://github.com/google/google-authenticator-libpam"}
+git_link=${git_link:-"https://github.com/google/google-authenticator-libpam"}
 git clone -q "${git_link}.git" "${gal_decompress_dir}"
 
 [[ -d ${gal_installation_dir} ]] && rm -rf ${gal_installation_dir} && mkdir -pv ${gal_installation_dir}
@@ -60,11 +60,7 @@ sed -i 's/#PermitRootLogin\ yes/PermitRootLogin\ no/g' /etc/ssh/sshd_config ;
 sed -i 's/#UseDNS\ yes/UseDNS\ no/g' /etc/ssh/sshd_config ;
 sed -i -r 's@(ChallengeResponseAuthentication) no@\1 yes@g' /etc/ssh/sshd_config ;
 
-exec sudo -u ${login_user} /bin/sh - << EOF
-echo 'y' | google-authenticator -t -d -f -Q UTF8 -r 3 -R 30 2>&1 > ${login_user_home}/google_authenticator
-EOF
-
-service sshd restart ;
+sudo -u ${login_user} google-authenticator -t -d -f -Q UTF8 -C -r 3 -R 30 -w 17 -e 10 -s ${login_user_home}/.google_authenticator && systemctl restart sshd.service ;
 
 # EnD
 exit
