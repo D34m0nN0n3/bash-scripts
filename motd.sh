@@ -7,6 +7,9 @@
 PSA=`ps -Afl | wc -l`
 HOSTNAME=$(uname -n)
 KERNEL=$(uname -r)
+# List updates available
+UPDATES_COUNT=$(yum check-update --quiet | grep -v "^$" | wc -l)
+UPDATES_SEC_COUNT=$(yum updateinfo list sec --quiet | grep -v "^$" | wc -l)
 # Time of day
 CLOCK=$(date +"%H:%M")
 HOUR=$(date +"%H")
@@ -29,7 +32,11 @@ Kernel version......: ${KERNEL}
 System uptime.......: $upDays days $upHours hours $upMins minutes $upSecs seconds
 Processes...........: $PSA running
 Users...............: Currently `users | wc -w` user(s) logged on
+Updates.............: ${UPDATES_SEC_COUNT} package(s) needed for security, out of ${UPDATES_COUNT} available
 "
+
+#Run "sudo yum update" to apply all updates
+
 echo -e ""
 echo -e "The last five kernel messages in the log:"
 journalctl -k -b -n 5 | awk '{print}'
