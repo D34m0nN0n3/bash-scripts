@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# Copyright (C) 2019 Dmitriy Prigoda <deamon.none@gmail.com> 
-# This script is free software: Everyone is permitted to copy and distribute verbatim copies of 
+# Copyright (C) 2019 Dmitriy Prigoda <deamon.none@gmail.com>
+# This script is free software: Everyone is permitted to copy and distribute verbatim copies of
 # the GNU General Public License as published by the Free Software Foundation, either version 3
 # of the License, but changing it is not allowed.
 # Message of the day.
@@ -8,6 +8,7 @@ PSA=`ps -Afl | wc -l`
 HOSTNAME=$(uname -n)
 KERNEL=$(uname -r)
 # List updates available
+yum clean all 1>2&
 UPDATES_COUNT=$(yum check-update --quiet | grep -v "^$" | wc -l)
 UPDATES_SEC_COUNT=$(yum updateinfo list sec --quiet | grep -v "^$" | wc -l)
 # Time of day
@@ -34,9 +35,10 @@ Processes...........: $PSA running
 Users...............: Currently `users | wc -w` user(s) logged on
 Updates.............: ${UPDATES_SEC_COUNT} package(s) needed for security, out of ${UPDATES_COUNT} available
 "
-
-#Run "sudo yum update" to apply all updates
-
+if [ ${UPDATES_COUNT} -ne 0 ]
+  then echo -e 'Run "sudo yum update" to apply all updates!'
+  else echo -e 'System update is not required!'
+fi
 echo -e ""
 echo -e "The last five kernel messages in the log:"
 journalctl -k -b -n 5 | awk '{print}'
