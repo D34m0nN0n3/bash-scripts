@@ -5,8 +5,8 @@
 
 # List updates available
 yum clean all 1>2&
-UPDATES_COUNT=$(yum check-update --quiet | grep -v "^$" | wc -l)
-UPDATES_SEC_COUNT=$(yum updateinfo list sec --quiet | grep -v "^$" | wc -l)
+UPDATES_COUNT=$(yum check-update --quiet | grep -v "^$" | wc -l) ;
+UPDATES_SEC_COUNT=$(yum updateinfo list sec --quiet | grep -v "^$" | wc -l) ;
 
 echo -e "System updates: ${UPDATES_SEC_COUNT} package(s) needed for security, out of ${UPDATES_COUNT} available."
 
