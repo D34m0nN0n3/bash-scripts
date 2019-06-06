@@ -4,7 +4,7 @@
 # of the License, but changing it is not allowed.
 
 # List updates available
-yum clean all 1>2&
+yum clean all 1>/dev/null
 UPDATES_COUNT=$(yum check-update --quiet | grep -v "^$" | wc -l) ;
 UPDATES_SEC_COUNT=$(yum updateinfo list sec --quiet | grep -v "^$" | wc -l) ;
 
