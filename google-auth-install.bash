@@ -24,6 +24,8 @@ fi
 login_user_home="/home/${login_user}"
 login_ssh_authorize_path=${login_ssh_authorize_path:-"${login_user_home}/.ssh/authorized_keys"}
 
+OS=`cat /etc/*release* | grep ^NAME | cut -f2 -d\"`
+if [[ "$OS" == "Amazon Linux" ]]; then
 # gal - Google Authenticator Libpam
 gal_decompress_dir='/tmp/google-authenticator-libpam'
 gal_installation_dir='/opt/googleAuthenticator'
@@ -48,6 +50,9 @@ unlink /lib64/security/pam_google_authenticator.la ;
 ln -fs ${gal_installation_dir}/bin/google-authenticator /usr/bin/google-authenticator ;
 ln -fs ${gal_installation_dir}/lib/security/pam_google_authenticator.so /lib64/security/pam_google_authenticator.so ;
 ln -fs ${gal_installation_dir}/lib/security/pam_google_authenticator.la /lib64/security/pam_google_authenticator.la ;
+elif [[ "$OS" == "CentOS Linux" ]] || [[ "$OS" == "Red Hat Enterprise Linux Server" ]]; then
+    sudo yum install google-authenticator -y > /dev/null 2>&1 || ( echo "Connect EPEL repository for google-authenticator installation" && exit 1 )
+fi
 
 # Config SSH Daemon
 sed -i '/#%PAM/a auth\ \ \ \ \ \ \ required\ \ \ \ \ pam_google_authenticator.so nullok' /etc/pam.d/sshd ;
@@ -60,7 +65,7 @@ sed -i 's/#PermitRootLogin\ yes/PermitRootLogin\ no/g' /etc/ssh/sshd_config ;
 sed -i 's/#UseDNS\ yes/UseDNS\ no/g' /etc/ssh/sshd_config ;
 sed -i -r 's@(ChallengeResponseAuthentication) no@\1 yes@g' /etc/ssh/sshd_config ;
 
-sudo -u ${login_user} google-authenticator -t -d -f -Q UTF8 -C -r 3 -R 30 -w 17 -e 10 -s ${login_user_home}/.google_authenticator && systemctl restart sshd.service ;
+sudo -u ${login_user} google-authenticator -t -d -f -Q UTF8 -r 3 -R 30 -w 17 -e 10 -s ${login_user_home}/.google_authenticator && systemctl restart sshd.service ;
 
 # EnD
 exit
