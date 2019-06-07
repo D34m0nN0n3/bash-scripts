@@ -1,0 +1,32 @@
+# Copyright (C) 2019 Dmitriy Prigoda <deamon.none@gmail.com>
+# This script is free software: Everyone is permitted to copy and distribute verbatim copies of
+# the GNU General Public License as published by the Free Software Foundation, either version 3
+# of the License, but changing it is not allowed.
+
+# Set 
+UPDATES_COUNT=$(timeout 30s /usr/bin/yum --debuglevel 2 check-update --quiet 2>/dev/null | grep -v "^$" | wc -l) ;
+[[ -z "${UPDATES_COUNT}" ]] && UPDATES_COUNT='0' || UPDATES_COUNT=${UPDATES_COUNT}
+UPDATES_SEC_COUNT=$(timeout 30s /usr/bin/yum --debuglevel 2 --security check-update --quiet 2>/dev/null | grep -v "^$" | wc -l) ;
+[[ -z "${UPDATES_SEC_COUNT}" ]] && UPDATES_SEC_COUNT='0' || UPDATES_SEC_COUNT=${UPDATES_SEC_COUNT}
+
+# List updates available
+grep -P '(^UPDATES_COUNT)' /etc/environment 2>/dev/null ; 
+ret_count=$?
+grep -P '(^UPDATES_SEC_COUNT)' /etc/environment 2>/dev/null ; 
+ret_count=$?
+
+if [ ${ret_count} -ne 0 ]
+  then
+   echo -e "UPDATES_COUNT=${UPDATES_COUNT}" >> /etc/environment ;
+   echo -e "UPDATES_SEC_COUNT=${UPDATES_SEC_COUNT}" >> /etc/environment ;
+  else
+    sed -e "s/.*UPDATES_COUNT.*/UPDATES_COUNT=${UPDATES_COUNT}/" /etc/environment
+    sed -e "s/.*UPDATES_SEC_COUNT.*/UPDATES_SEC_COUNT=${UPDATES_SEC_COUNT}/" /etc/environment
+fi
+
+echo -e "System updates: ${UPDATES_SEC_COUNT} package(s) needed for security, out of ${UPDATES_COUNT} available."
+
+if [ ${UPDATES_COUNT} -ne 0 ]
+  then echo -e 'Run "sudo yum update" to apply all updates!'
+  else echo -e 'System update is not required!'
+fi
