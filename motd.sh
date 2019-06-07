@@ -38,7 +38,7 @@ echo -e "The last five error messages in the log:"
 journalctl -p err -b -n 5 | awk '{print}'
 echo -e ""
 echo -e "System updates: ${UPDATES_SEC_COUNT} package(s) needed for security, out of ${UPDATES_COUNT} available."
-
+echo -e ""
 if [ ${UPDATES_COUNT} -ne 0 ]
   then echo -e 'Run "sudo yum update" to apply all updates!'
   else echo -e 'System update is not required!'
