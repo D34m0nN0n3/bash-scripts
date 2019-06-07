@@ -18,12 +18,56 @@ if [[ $EUID -ne 0 ]]; then
    exit 1
 fi
 
-# Detecting login user info
-[[ -n "${SUDO_USER:-}" ]] && login_user="${SUDO_USER:-}" 2> /dev/null
+# initialize PRINT_* counters to zero
+fail_count=0 ; warning_count=0 ; success_count=0
 
-login_user_home="/home/${login_user}"
+function pad {
+  PADDING="..............................................................."
+  TITLE=$1
+  printf "%s%s  " "${TITLE}" "${PADDING:${#TITLE}}"
+}
+
+function print_FAIL {
+  echo -e "$@ \e[1;31mFAIL\e[0;39m\n"
+  let fail_count++
+  return 0
+}
+
+function print_WARNING {
+  echo -e "$@ \e[1;33mPASS\e[0;39m\n"
+  let warning_count++
+  return 0
+}
+
+function print_SUCCESS {
+  echo -e "$@ \e[1;32mSUCCESS\e[0;39m\n"
+  let success_count++
+  return 0
+}
+
+function panic {
+  local error_code=${1} ; shift
+  echo "Error: ${@}" 1>&2
+  exit ${error_code}
+}
+
+# Detecting login user info
+[[ -n "${USER:-}" && -z "${SUDO_USER:-}" ]] && login_user="$USER" || login_user="$SUDO_USER" 2> /dev/null
+[[ "${login_user}" == 'root' ]] && login_user_home='/root' || login_user_home="/home/${login_user}"
 login_ssh_authorize_path=${login_ssh_authorize_path:-"${login_user_home}/.ssh/authorized_keys"}
 
+if [[ ! (-s '/etc/os-release' || -s '/etc/redhat-release') ]]; then
+   if [[ -s '/etc/os-release' ]]; then
+     
+else
+   echo -e "Sorry: this script fail to recognize your system!"
+fi
+
+
+
+# Install Google Authenticator Libpam
+function install_gal_git {
+pad "Install Google Authenticator Libpam:"
 # gal - Google Authenticator Libpam
 gal_decompress_dir='/tmp/google-authenticator-libpam'
 gal_installation_dir='/opt/googleAuthenticator'
@@ -40,27 +84,80 @@ git clone -q "${git_link}.git" "${gal_decompress_dir}"
 pushd ${gal_decompress_dir}
 ./bootstrap.sh ; ./configure  --prefix=/opt/googleAuthenticator ; make -j 3 && make install ;
 
-
-# Install Google Authenticator
+# Setup Google Authenticator
 unlink /usr/bin/google-authenticator ;
 unlink /lib64/security/pam_google_authenticator.so ;
 unlink /lib64/security/pam_google_authenticator.la ;
 ln -fs ${gal_installation_dir}/bin/google-authenticator /usr/bin/google-authenticator ;
 ln -fs ${gal_installation_dir}/lib/security/pam_google_authenticator.so /lib64/security/pam_google_authenticator.so ;
 ln -fs ${gal_installation_dir}/lib/security/pam_google_authenticator.la /lib64/security/pam_google_authenticator.la ;
+if [ $? -ne 0 ]; then
+    print_FAIL
+    exit 1
+else
+    print_SUCCESS
+fi
+}
+
+# Install Google Authenticator Libpam
+function install_gal_repo {
+pad "Install Google Authenticator Libpam:"
+yum install google-authenticator -y > /dev/null 2>&1 || ( echo "Connect EPEL repository for google-authenticator installation" && exit 1 )
+if [ $? -ne 0 ]; then
+    print_FAIL
+    exit 1
+else
+    print_SUCCESS
+fi
+}
 
 # Config SSH Daemon
+function config_sshd {
+pad "Configuring SSH Daemon:"
 sed -i '/#%PAM/a auth\ \ \ \ \ \ \ required\ \ \ \ \ pam_google_authenticator.so nullok' /etc/pam.d/sshd ;
-if [ -f "${login_ssh_authorize_path}" ]; then
-   sed -i -r '/auth[[:space:]]+substack[[:space:]]+password-auth/s/^/#/' /etc/pam.d/sshd ;
-   echo -e 'AuthenticationMethods publickey,keyboard-interactive' >> /etc/ssh/sshd_config ;
-fi
 
 sed -i 's/#PermitRootLogin\ yes/PermitRootLogin\ no/g' /etc/ssh/sshd_config ;
 sed -i 's/#UseDNS\ yes/UseDNS\ no/g' /etc/ssh/sshd_config ;
 sed -i -r 's@(ChallengeResponseAuthentication) no@\1 yes@g' /etc/ssh/sshd_config ;
+if [ $? -ne 0 ]; then
+    print_FAIL
+    exit 1
+else
+    print_SUCCESS
+fi
+}
 
+# Config SSH Daemon Authentication Methods
+function config_sshd_authmethods {
+if [ -f "${login_ssh_authorize_path}" ]; then
+   sed -i -r '/auth[[:space:]]+substack[[:space:]]+password-auth/s/^/#/' /etc/pam.d/sshd ;
+   echo -e 'AuthenticationMethods publickey,keyboard-interactive' >> /etc/ssh/sshd_config ;
+fi
+}
+
+# Config Google Authenticator
+function config_gal_git {
+pad "Configuring Google Authenticator:"
 sudo -u ${login_user} google-authenticator -t -d -f -Q UTF8 -C -r 3 -R 30 -w 17 -e 10 -s ${login_user_home}/.google_authenticator && systemctl restart sshd.service ;
+if [ $? -ne 0 ]; then
+    print_FAIL
+    exit 1
+else
+    print_SUCCESS
+fi
+}
+
+# Config Google Authenticator
+function config_gal_repo {
+pad "Configuring Google Authenticator:"
+sudo -u ${login_user} google-authenticator -t -d -f -Q UTF8 -r 3 -R 30 -w 17 -e 10 -s ${login_user_home}/.google_authenticator && systemctl restart sshd.service ;
+if [ $? -ne 0 ]; then
+    print_FAIL
+    exit 1
+else
+    print_SUCCESS
+fi
+}
 
 # EnD
 exit
