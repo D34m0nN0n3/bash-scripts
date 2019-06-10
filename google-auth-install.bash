@@ -56,15 +56,6 @@ function panic {
 [[ "${login_user}" == 'root' ]] && login_user_home='/root' || login_user_home="/home/${login_user}"
 login_ssh_authorize_path=${login_ssh_authorize_path:-"${login_user_home}/.ssh/authorized_keys"}
 
-if [[ ! (-s '/etc/os-release' || -s '/etc/redhat-release') ]]; then
-   if [[ -s '/etc/os-release' ]]; then
-     
-else
-   echo -e "Sorry: this script fail to recognize your system!"
-fi
-
-
-
 # Install Google Authenticator Libpam
 function install_gal_git {
 pad "Install Google Authenticator Libpam:"
@@ -114,8 +105,7 @@ fi
 # Config SSH Daemon
 function config_sshd {
 pad "Configuring SSH Daemon:"
-sed -i '/#%PAM/a auth\ \ \ \ \ \ \ required\ \ \ \ \ pam_google_authenticator.so nullok' /etc/pam.d/sshd ;
-
+awk 'FNR==NR{ if (/auth/) p=NR; next} 1; FNR==p{ print "auth       required     pam_google_authenticator.so nullok" }' /etc/pam.d/sshd ;
 sed -i 's/#PermitRootLogin\ yes/PermitRootLogin\ no/g' /etc/ssh/sshd_config ;
 sed -i 's/#UseDNS\ yes/UseDNS\ no/g' /etc/ssh/sshd_config ;
 sed -i -r 's@(ChallengeResponseAuthentication) no@\1 yes@g' /etc/ssh/sshd_config ;
@@ -158,6 +148,17 @@ else
     print_SUCCESS
 fi
 }
+
+if [[ ! (-s '/etc/os-release' || -s '/etc/redhat-release') ]]; then
+     OS=`cat /etc/os-release | grep ^NAME | cut -f2 -d\"`
+     if [[ "$OS" == "Amazon Linux" ]]; then
+       install_gal_git && config_sshd && config_sshd_authmethods && config_gal_git
+     elif [[ "$OS" == "CentOS Linux" ]] || [[ "$OS" == "Red Hat Enterprise Linux Server" ]]; then
+       install_gal_repo && config_sshd && config_gal_repo
+fi
+else
+   echo -e "Sorry: this script fail to recognize your system!"
+fi
 
 # EnD
 exit
