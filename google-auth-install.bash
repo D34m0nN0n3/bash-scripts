@@ -74,8 +74,7 @@ git clone -q "${git_link}.git" "${gal_decompress_dir}" > /dev/null 2>&1
 
 [[ -d ${gal_installation_dir} ]] && rm -rf ${gal_installation_dir} && mkdir -pv ${gal_installation_dir}
 
-pushd ${gal_decompress_dir}
-./bootstrap.sh ; ./configure  --prefix=/opt/googleAuthenticator ; make -j 3 && make install > /dev/null 2>&1 ;
+(pushd ${gal_decompress_dir} && ./bootstrap.sh ; ./configure  --prefix=/opt/googleAuthenticator ; make -j 3 && make install) > /dev/null 2>&1 ;
 
 # Setup Google Authenticator
 unlink /usr/bin/google-authenticator > /dev/null 2>&1 ;
