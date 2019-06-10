@@ -129,11 +129,11 @@ function foreman_user {
 # click Submit.
 # The ceate user for remote execution features Katello
 userdel --remove foreman-proxy-user --force > /dev/null 2>&1 ;
-useradd --create-home --password $(python -c 'import crypt; print(crypt.crypt("$(base64 -w 16 /dev/urandom | tr -d /+ | head -n 1)"))') --comment "User for remote execution features Katello" --system foreman-proxy-user > /dev/null 2>&1 &&
+useradd --create-home --password $(python -c 'import crypt; print(crypt.crypt("$(base64 -w 16 /dev/urandom | tr -d /+ | head -n 1)"))') --comment "User for remote execution features Katello" --system foreman-proxy-user > /dev/null 2>&1 | logger -p user.error -t `basename "$0"` &&
 # The add authorized key for remote execution features Katello
-mkdir -p ~foreman-proxy-user/.ssh/ > /dev/null 2>&1 &&
-curl --insecure --output ~foreman-proxy-user/.ssh/authorized_keys https://${IDSERV}:9090/ssh/pubkey > /dev/null 2>&1 &&
-chown foreman-proxy-user:foreman-proxy-user -R ~foreman-proxy-user/.ssh/ && chmod 600 ~foreman-proxy-user/.ssh/authorized_keys > /dev/null 2>&1 &&
+mkdir -p ~foreman-proxy-user/.ssh/ > /dev/null 2>&1 | logger -p user.error -t `basename "$0"` &&
+curl --insecure --output ~foreman-proxy-user/.ssh/authorized_keys https://${IDSERV}:9090/ssh/pubkey > /dev/null 2>&1 | logger -p user.error -t `basename "$0"` &&
+chown foreman-proxy-user:foreman-proxy-user -R ~foreman-proxy-user/.ssh/ && chmod 600 ~foreman-proxy-user/.ssh/authorized_keys > /dev/null 2>&1 | logger -p user.error -t `basename "$0"` &&
 restorecon -Rv ~foreman-proxy-user/.ssh/ > /dev/null 2>&1 &&
 # The add permission for remote execution features Katello
 cat << 'EOF' > /etc/sudoers.d/foreman-proxy-user
@@ -185,6 +185,6 @@ function reboot_host {
         done
 }
 
-disable_repo ; reg_host && puppet_setup && foreman_user ; update_host && reboot_host
+disable_repo ; reg_host && puppet_setup ; foreman_user ; update_host && reboot_host
 #END
 exit
