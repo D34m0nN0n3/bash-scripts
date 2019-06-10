@@ -149,6 +149,18 @@ EOF
   fi
 }
 
+function puppet_setup {
+  pad "Installing and configuring puppet agent"
+  yum install puppet -y && puppet config set server $IDSERV && puppet agent --test --noop && systemctl enable puppet --now ;
+  RESULT=$?
+  if [ "${RESULT}" -ne 0 ]; then
+    print_WARNING
+    echo -n "Puppet can't installed"
+  else
+    print_SUCCESS
+  fi
+}
+
 function update_host {
   read -p "Do you want update system? (y/n): " choice
         while :
@@ -173,6 +185,6 @@ function reboot_host {
         done
 }
 
-disable_repo ; reg_host && foreman_user ; update_host && reboot_host
+disable_repo ; reg_host && puppet_setup && foreman_user ; update_host && reboot_host
 #END
 exit
