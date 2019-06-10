@@ -151,7 +151,7 @@ EOF
 
 function puppet_setup {
   pad "Installing and configuring puppet agent"
-  yum install puppet -y && puppet config set server $IDSERV && puppet agent --test --noop && systemctl enable puppet --now ;
+yum install puppet -y && puppet config set server $IDSERV && puppet agent --test --noop && systemctl enable puppet --now ;
   RESULT=$?
   if [ "${RESULT}" -ne 0 ]; then
     print_WARNING
