@@ -106,8 +106,8 @@ fi
 # Config SSH Daemon
 function config_sshd {
 pad "Configuring SSH Daemon:"
-sed -i -e '/^auth\ \ \ \ \ \ \ /a auth\ \ \ \ \ \ \ required\ \ \ \ \ pam_google_authenticator.so nullok' /etc/pam.d/sshd ;
-sed -i 's/#PermitRootLogin\ yes/PermitRootLogin\ no/g' /etc/ssh/sshd_config ;
+sed -i -e "$(grep -n '^auth[[:space:]]' /etc/pam.d/sshd | tail -1 | cut -f1 -d':')a auth\ \ \ \ \ \ \ required\ \ \ \ \ pam_google_authenticator.so nullok" /etc/pam.d/sshd ;
+sed -i 's/PermitRootLogin\ yes/PermitRootLogin\ no/g' /etc/ssh/sshd_config ;
 sed -i 's/#UseDNS\ yes/UseDNS\ no/g' /etc/ssh/sshd_config ;
 sed -i -r 's@(ChallengeResponseAuthentication) no@\1 yes@g' /etc/ssh/sshd_config ;
 if [ $? -ne 0 ]; then
