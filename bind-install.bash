@@ -68,10 +68,10 @@ cat <<'EOF' >> /etc/sysconfig/named > /dev/null 2>&1
 OPTIONS="-4"
 EOF
 
-mkdir -p /var/named/master && chmod 0640 /var/named/master && chown root:named /var/named/master &&
+mkdir -p /var/named/masters && chmod u=rwx,g=rx /var/named/masters && chown root:named /var/named/masters &&
 chcon -t named_zone_t /var/named/* &&
 chcon -t named_conf_t /etc/{named,rndc}.* &&
-chcon -t named_cache_t /var/named/{master,slaves,data} &&
+chcon -t named_cache_t /var/named/{masters,slaves,data} &&
 setsebool -P named_write_master_zones 1 > /dev/null 2>&1
 if [ $? -ne 0 ]; then
     let fail_count++
