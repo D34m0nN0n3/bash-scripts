@@ -57,7 +57,7 @@ function panic {
 function install_bind {
 pad "Install BIND server:"
 
-yum install bind bind-utils bind-chroot -y > /dev/null 2>&1
+yum install bind bind-utils bind-libs bind-chroot -y > /dev/null 2>&1
 if [ $? -ne 0 ]; then
     let fail_count++
 else
