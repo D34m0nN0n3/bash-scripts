@@ -85,7 +85,7 @@ case $choice in
     3) clear; psinfo;;
     4) clear; diskinfo;;
     5) clear; netinfo;;
-    6) clear; sosreport --batch: --tmp-dir /home/smenaptk;;
+    6) clear; sosreport --batch: --tmp-dir .~;;
     7)
 while true; do
     read -p "Are you sure?: " yn
