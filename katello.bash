@@ -178,7 +178,7 @@ function reboot_host {
         while :
         do
             case "$choice" in
-                y|Y) systemctl reboot; break;;
+                y|Y) wall The system will restart in one minute! && sleep 60 && systemctl reboot; break;;
                 n|N) echo "Don't forget to reboot later!"; break;;
                 * ) read -p "Please enter 'y' or 'n': " choice;;
             esac
