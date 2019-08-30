@@ -46,17 +46,27 @@ Registration this client on Katello.
                                             If no value is specified, then use: "Default_Organization"
                                             (opcional option)
         -k | --key <value>                  This activation key may be used during system registration.
-        -l | --list                         Show list keys.
-        -h | -?                             Show help.
+        -l | --list                         Display all activation  keys for organization ORG on server serv.example.net (use without other options).
+        -h | --help <key>                   Display information about activation key <key>. Only one key for request.
+        -f | --force                        Auto update and reboot.
     
-     Example: bash $0 -s <name> -k <key> -o <organization>
+     Example usage:
+        Classic:                 bash $0 -s <name> -o <organization> -k <key> 
+        Silent update/reboot:    bash $0 -s <name> -o <organization> -k <key> -f
+        First fast register:     bash $0 -q <organization> -key <key>
+        List keys:               bash $0 --list
+        Display key info:        bash $0 --help <key>
 EOF
-exit 1
+exit 2
 }
 
 if [[ -z $* ]]; then
    print_usage
 fi
+
+function klist {
+IDAK=$(curl http://gvc-rhs-01.gvc.oao.rzd/pub/ak-gvc -s | grep Name | awk '{print $2}' | sed ':a;N;$!ba;s/\n/;/g')
+
 
 for arg in "$@"; do
   shift
@@ -65,11 +75,13 @@ for arg in "$@"; do
     "--key")          set -- "$@" "-k" ;;
     "--organization") set -- "$@" "-o" ;;
     "--list")         set -- "$@" "-l" ;;
+    "--force")        set -- "$@" "-f" ;;
+    "--help")         set -- "$@" "-h" ;;
     *)                set -- "$@" "$arg"
   esac
 done
 
-unset IDSERV IDORG IDKEY
+unset IDSERV IDORG IDKEY FORCE
 
 if [[ -z ${IDORG} ]]; then
    IDORG='Default_Organization'
@@ -79,7 +91,7 @@ function checkargs {
 if [[ $OPTARG =~ ^-[s/k/o]$ ]]
 then
 echo "Not set argument for option: ${OPTION}"
-exit 1
+exit 3
 fi
 }
 
@@ -90,6 +102,8 @@ do
          k) checkargs; IDKEY=${OPTARG} ;;
          o) checkargs; IDORG=${OPTARG} ;;
          l) LIST="list" ;;
+         f) FORCE=1 ;;
+         h) 
          *) echo "Invalid option."; break;;
      esac
 done
