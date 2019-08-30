@@ -51,11 +51,11 @@ Registration this client on Katello.
         -f | --force                        Auto update and reboot.
     
      Example usage:
-        Classic:                 bash $0 -s <name> -o <organization> -k <key> 
-        Silent update/reboot:    bash $0 -s <name> -o <organization> -k <key> -f
-        First fast register:     bash $0 -q <organization> -key <key>
-        List keys:               bash $0 --list
-        Display key info:        bash $0 --help <key>
+        Classic:                 bash `basename $0` -s <name> -o <organization> -k <key> 
+        Silent update/reboot:    bash `basename $0``basename $0` -s <name> -o <organization> -k <key> -f
+        First fast register:     bash `basename $0` -q <organization> -key <key>
+        List keys:               bash `basename $0` --list
+        Display key info:        bash `basename $0` --help <key>
 EOF
 exit 2
 }
@@ -64,22 +64,43 @@ if [[ -z $* ]]; then
    print_usage
 fi
 
-function klist {
-IDAK=$(curl http://gvc-rhs-01.gvc.oao.rzd/pub/ak-gvc -s | grep Name | awk '{print $2}' | sed ':a;N;$!ba;s/\n/;/g')
-
-
-for arg in "$@"; do
+for ARG in "$@"; do
   shift
-  case "$arg" in
+  case "${ARG}" in
     "--server")       set -- "$@" "-s" ;;
     "--key")          set -- "$@" "-k" ;;
     "--organization") set -- "$@" "-o" ;;
     "--list")         set -- "$@" "-l" ;;
     "--force")        set -- "$@" "-f" ;;
     "--help")         set -- "$@" "-h" ;;
-    *)                set -- "$@" "$arg"
+    *)                set -- "$@" "${ARG}"
   esac
 done
+
+function klist {
+unset IDAK
+local IDAK=$(curl http://gvc-rhs-01.gvc.oao.rzd/pub/ak-gvc -s | grep Name | awk '{print $2}' | sed ':a;N;$!ba;s/\n/; /g')
+echo "All activation keys: ${IDAK}"
+exit 0
+}
+
+function kinfo {
+unset IDAK
+while [[ $1 =~ ^-[h]$ ]]; do
+shift
+if [[ -z $1 ]]
+then
+echo "Not set activation keys!"
+exit 3
+else
+local IDAK=$1
+curl http://gvc-rhs-01.gvc.oao.rzd/pub/ak-gvc -s | sed -n "/${IDAK}/,/==/p"
+fi
+done
+exit 0
+}
+
+
 
 unset IDSERV IDORG IDKEY FORCE
 
@@ -95,15 +116,13 @@ exit 3
 fi
 }
 
-while getopts "s:k:o::l" OPTION
+while getopts "s:k:o::f" OPTION
 do
      case $OPTION in
          s) checkargs; IDSERV=${OPTARG} ;;
          k) checkargs; IDKEY=${OPTARG} ;;
          o) checkargs; IDORG=${OPTARG} ;;
-         l) LIST="list" ;;
          f) FORCE=1 ;;
-         h) 
          *) echo "Invalid option."; break;;
      esac
 done
