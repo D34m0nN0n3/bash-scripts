@@ -20,54 +20,79 @@ if [[ $EUID -ne 0 ]]; then
    exit 1
 fi
 
-auditctl -l && cat /dev/null > /etc/audit/rules.d/audit.rules && augenrules
+cp -a /etc/audit/audit.rules.prev /root/audit.rules.prev.back && cat /dev/null > /etc/audit/audit.rules.prev ;
+cp -a /etc/audit/rules.d/audit.rules /root/audit.rules.back && cat /dev/null > /etc/audit/rules.d/audit.rules ;
 
-cat <<-EOF>> /etc/audit/audit.rules
+cat <<-EOF>> /etc/audit/rules.d/audit.rules
+## First rule - delete all
+-D
+
+## Increase the buffers to survive stress events.
+## Make this bigger for busy systems
+-b 8192
+
+## Set failure mode to syslog
+-f 1
+
 ## Audit kernel modules
 -w /sbin/modprobe -p x -k auditkernel
+
 ## Audit system configuration files
 -w /etc/sysconfig/ -p rwa -k auditconf
+
 ## Audit network connections (IPv4, IPv6)
 -a exit,always -F arch=b32 -S socket -F auid>=500 -F auid!=4294967295 -F a0=2 -F success=1 -k auditconn
 -a exit,always -F arch=b64 -S socket -F auid>=500 -F auid!=4294967295 -F a0=2 -F success=1 -k auditconn
 -a exit,always -F arch=b32 -S socket -F auid>=500 -F auid!=4294967295 -F a0=10 -F success=1 -k auditconn
 -a exit,always -F arch=b64 -S socket -F auid>=500 -F auid!=4294967295 -F a0=10 -F success=1 -k auditconn
+
 ## Audit create file as root
 -a exit,always -F arch=b32 -F uid=0 -S creat -k audit-rootfile
 -a exit,always -F arch=b64 -F uid=0 -S creat -k audit-rootfile
+
 ## Audit open file as users account 
 -a exit,always -F arch=b32 -F auid>=1000 -S open -k audit-userfile
 -a exit,always -F arch=b64 -F auid>=1000 -S open -k audit-userfile
+
 ## Unauthorized Access (unsuccessful) 
 -a exit,always -F arch=b32 -S creat -S open -S openat -S open_by_handle_at -S truncate -S ftruncate -F exit=-EACCES -F auid>=500 -F auid!=4294967295 -k auditfaccess
 -a exit,always -F arch=b32 -S creat -S open -S openat -S open_by_handle_at -S truncate -S ftruncate -F exit=-EPERM -F auid>=500 -F auid!=4294967295 -k auditfaccess
 -a exit,always -F arch=b64 -S creat -S open -S openat -S open_by_handle_at -S truncate -S ftruncate -F exit=-EACCES -F auid>=500 -F auid!=4294967295 -k auditfaccess
 -a exit,always -F arch=b64 -S creat -S open -S openat -S open_by_handle_at -S truncate -S ftruncate -F exit=-EPERM -F auid>=500 -F auid!=4294967295 -k auditfaccess
+
 ## Access to docker 
 -w /usr/bin/docker -p rwxa -k auditdocker
+
 ## Sudoers file changes 
 -w /etc/sudoers -p wa -k sudo_modification
+
 ## Passwd  modificatons
 -w /usr/bin/passwd -p x -k passwd_modification
+
 ## Tools to edit group and users
 -w /usr/sbin/groupadd -p x -k group_modification
 -w /usr/sbin/groupmod -p x -k group_modification
 -w /usr/sbin/useradd -p x -k user_modification
 -w /usr/sbin/usermod -p x -k user_modification
 -w /usr/sbin/adduser -p x -k user_modification
+
 ## Changes to network files
 -w /etc/hosts -p wa -k network_modifications
 -w /etc/sysconfig/network -p wa -k network_modifications
 -w /etc/networks/ -p wa -k network 
 -a exit,always -F dir=/etc/NetworkManager/ -F perm=wa -k network_modifications
+
 ## Audit executive command 
 -a exit,always -F arch=b32 -S execve -k auditcmd
 -a exit,always -F arch=b64 -S execve -k auditcmd
+
 ## BLOCK RULE EDITING 
 -e 2  
 EOF
 
-service auditd stop && service auditd start
+augenrules && service auditd stop && service auditd start
 systemctl status auditd.service && auditctl -s && auditctl -l
+
+/bin/bash -c '`/sbin/kexec -l /boot/vmlinuz-\$(/bin/uname -r) --initrd=/boot/initramfs-\$(/bin/uname -r).img --reuse-cmdline`'
 
 # END
