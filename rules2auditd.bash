@@ -20,7 +20,7 @@ if [[ $EUID -ne 0 ]]; then
    exit 1
 fi
 
-auditctl -l 
+auditctl -l && cat /dev/null > /etc/audit/rules.d/audit.rules && augenrules
 
 cat <<-EOF>> /etc/audit/audit.rules
 ## Audit kernel modules
@@ -67,6 +67,7 @@ cat <<-EOF>> /etc/audit/audit.rules
 -e 2  
 EOF
 
-systemctl status auditd.service && auditctl -s
+service auditd stop && service auditd start
+systemctl status auditd.service && auditctl -s && auditctl -l
 
 # END
