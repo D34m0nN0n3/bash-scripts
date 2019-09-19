@@ -23,7 +23,7 @@ fi
 cp -a /etc/audit/audit.rules.prev /root/audit.rules.prev.back && cat /dev/null > /etc/audit/audit.rules.prev ;
 cp -a /etc/audit/rules.d/audit.rules /root/audit.rules.back && cat /dev/null > /etc/audit/rules.d/audit.rules ;
 
-cat <<-EOF>> /etc/audit/rules.d/audit.rules
+cat <<-'EOF'>> /etc/audit/rules.d/audit.rules
 ## First rule - delete all
 -D
 
