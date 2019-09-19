@@ -20,9 +20,46 @@ if [[ $EUID -ne 0 ]]; then
    exit 1
 fi
 
+# initialize PRINT_* counters to zero
+fail_count=0 ; warning_count=0 ; success_count=0
+
+function pad {
+  PADDING="..............................................................."
+  TITLE=$1
+  printf "%s%s  " "${TITLE}" "${PADDING:${#TITLE}}"
+}
+
+function print_FAIL {
+  echo -e "$@ \e[1;31mFAIL\e[0;39m\n"
+  let fail_count++
+  return 0
+}
+
+function print_WARNING {
+  echo -e "$@ \e[1;33mPASS\e[0;39m\n"
+  let warning_count++
+  return 0
+}
+
+function print_SUCCESS {
+  echo -e "$@ \e[1;32mSUCCESS\e[0;39m\n"
+  let success_count++
+  return 0
+}
+
+function backup_rules {
+pad "Backup rules files:"
 cp -a /etc/audit/audit.rules.prev /root/audit.rules.prev.back && cat /dev/null > /etc/audit/audit.rules.prev ;
 cp -a /etc/audit/rules.d/audit.rules /root/audit.rules.back && cat /dev/null > /etc/audit/rules.d/audit.rules ;
+if [ $? -ne 0 ]; then
+    print_FAIL
+else
+    print_SUCCESS
+fi
+}
 
+function add_rules {
+pad "Add new rules to files:"
 cat <<-'EOF'>> /etc/audit/rules.d/audit.rules
 ## First rule - delete all
 -D
@@ -88,11 +125,57 @@ cat <<-'EOF'>> /etc/audit/rules.d/audit.rules
 
 ## BLOCK RULE EDITING 
 -e 2  
+EOF > /dev/null 2>&1
+if [ $? -ne 0 ]; then
+    print_FAIL
+    exit 1
+else
+    print_SUCCESS
+fi
+}
+
+function kexec_target {
+pad "Create kexec target:"
+# Reload kernel fast.
+SERVICE_NAME="kexec-load"
+#INSTANCABLE="@"
+SYSTEMD_PREFIX="systemd/system"
+SYSTEMD_SERVICE="/etc/$SYSTEMD_PREFIX/${SERVICE_NAME}${INSTANCABLE}.service"
+
+cat > $SERVICE_NAME << EOF
+[Unit]
+Description=load \$(uname -r) kernel into the current kernel
+Documentation=https://wiki.archlinux.org/index.php/Kexec
+DefaultDependencies=no
+Before=shutdown.target umount.target final.target kexec.target
+[Service]
+Type=oneshot
+ExecStart=/bin/bash -c '/sbin/kexec -l /boot/vmlinuz-\$(/bin/uname -r) --initrd=/boot/initramfs-\$(/bin/uname -r).img --reuse-cmdline'
+[Install]
+WantedBy=kexec.target
 EOF
 
-augenrules && service auditd stop && service auditd start
-systemctl status auditd.service && auditctl -s && auditctl -l
+cp -f $SERVICE_NAME $SYSTEMD_SERVICE
+chown root:root $SYSTEMD_SERVICE
+restorecon $SYSTEMD_SERVICE
+systemctl daemon-reload
+systemctl enable $SERVICE_NAME
+if [ $? -ne 0 ]; then
+    print_FAIL
+    exit 1
+else
+    print_SUCCESS
+fi
+}
 
-/bin/bash -c '`/sbin/kexec -l /boot/vmlinuz-\$(/bin/uname -r) --initrd=/boot/initramfs-\$(/bin/uname -r).img --reuse-cmdline`'
+backup_rules && add_rules && augenrules 
+service auditd stop > /dev/null 2>&1 && service auditd start > /dev/null 2>&1
 
+systemctl status auditd.service > /root/rules2auditd.log
+auditctl -s >> /root/rules2auditd.log
+auditctl -l >> /root/rules2auditd.log
+
+sleep 5
+systemctl start kexec.target
 # END
+exit 0
