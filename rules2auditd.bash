@@ -49,7 +49,7 @@ function print_SUCCESS {
 
 function backup_rules {
 pad "Backup rules files:"
-cp -a /etc/audit/audit.rules.prev /root/audit.rules.prev.back && cat /dev/null > /etc/audit/audit.rules.prev ;
+cp -a /etc/audit/audit.rules.prev /root/audit.rules.prev.back && cat /dev/null > /etc/audit/audit.rules.prev &&
 cp -a /etc/audit/rules.d/audit.rules /root/audit.rules.back && cat /dev/null > /etc/audit/rules.d/audit.rules ;
 if [ $? -ne 0 ]; then
     print_FAIL
@@ -125,7 +125,7 @@ cat <<-'EOF'>> /etc/audit/rules.d/audit.rules
 
 ## BLOCK RULE EDITING 
 -e 2  
-EOF > /dev/null 2>&1
+EOF
 if [ $? -ne 0 ]; then
     print_FAIL
     exit 1
@@ -138,11 +138,10 @@ function kexec_target {
 pad "Create kexec target:"
 # Reload kernel fast.
 SERVICE_NAME="kexec-load"
-#INSTANCABLE="@"
 SYSTEMD_PREFIX="systemd/system"
 SYSTEMD_SERVICE="/etc/$SYSTEMD_PREFIX/${SERVICE_NAME}${INSTANCABLE}.service"
 
-cat > $SERVICE_NAME << EOF
+cat << 'EOF' > $SERVICE_NAME
 [Unit]
 Description=load \$(uname -r) kernel into the current kernel
 Documentation=https://wiki.archlinux.org/index.php/Kexec
