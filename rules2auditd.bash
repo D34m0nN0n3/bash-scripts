@@ -60,7 +60,7 @@ fi
 
 function add_rules {
 pad "Add new rules to files:"
-cat <<-'EOF'>> /etc/audit/rules.d/audit.rules
+cat <<-'EOF'> /etc/audit/rules.d/audit.rules
 ## First rule - delete all
 -D
 
