@@ -167,6 +167,10 @@ else
 fi
 }
 
+sed -i 's/max_log_file\ =\ 8/max_log_file\ =\ 50/g' /etc/audit/auditd.conf ;
+sed -i 's/num_logs\ =\ 5/num_logs\ =\ 10/g' /etc/audit/auditd.conf ;
+sed -i 's/disp_qos\ =\ lossy/disp_qos\ =\ lossless/g' /etc/audit/auditd.conf ;
+
 backup_rules && add_rules && augenrules 
 service auditd stop > /dev/null 2>&1 && service auditd start > /dev/null 2>&1
 
