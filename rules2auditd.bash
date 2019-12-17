@@ -119,13 +119,21 @@ cat <<-'EOF'> /etc/audit/rules.d/audit.rules
 -w /etc/networks/ -p wa -k network 
 -a exit,always -F dir=/etc/NetworkManager/ -F perm=wa -k network_modifications
 
+## Audit log delete
+-a always,exit -F arch=b32 -S rmdir -S unlink -S unlinkat -S rename -S renameat -F dir=/var/log -k deletelog
+-a always,exit -F arch=b64 -S rmdir -S unlink -S unlinkat -S rename -S renameat -F dir=/var/log -k deletelog
+
+## Audit log access
+-a always,exit -F arch=b32 -S rename -S renameat -S truncate -S chmod -S setxattr -S lsetxattr -S removexattr -S lremovexattr -F exit=-EACCES -F dir=/var/log -k accesslog
+-a always,exit -F arch=b64 -S rename -S renameat -S truncate -S chmod -S setxattr -S lsetxattr -S removexattr -S lremovexattr -F exit=-EACCES -F dir=/var/log -k accesslog
+
 ## Audit executive command 
 # As root
--a exit,always -F arch=b64 -F euid=0 -S execve -k rootcmd
--a exit,always -F arch=b32 -F euid=0 -S execve -k rootcmd
-
--a exit,always -F arch=b32 -F auid>=1000 -S execve -k auditcmd -F subj_type!=SYSCALL -F tty=(none)
--a exit,always -F arch=b64 -F auid>=1000 -S execve -k auditcmd -F subj_type!=SYSCALL -F tty=(none)
+-a exit,always -F arch=b64 -F euid=0 -F auid!=4294967295 -S execve -k rootcmd
+-a exit,always -F arch=b32 -F euid=0 -F auid!=4294967295 -S execve -k rootcmd
+# As users
+-a exit,always -F arch=b64 -F euid>=1000 -S execve -k usercmd
+-a exit,always -F arch=b32 -F euid>=1000 -S execve -k usercmd
 
 ## BLOCK RULE EDITING 
 -e 2  
@@ -176,8 +184,7 @@ sed -i 's/max_log_file\ =\ 8/max_log_file\ =\ 50/g' /etc/audit/auditd.conf ;
 sed -i 's/num_logs\ =\ 5/num_logs\ =\ 10/g' /etc/audit/auditd.conf ;
 sed -i 's/disp_qos\ =\ lossy/disp_qos\ =\ lossless/g' /etc/audit/auditd.conf ;
 
-backup_rules && add_rules && augenrules 
-service auditd stop > /dev/null 2>&1 && service auditd start > /dev/null 2>&1
+/usr/sbin/augenrules --load && service auditd stop > /dev/null 2>&1 && service auditd start > /dev/null 2>&1
 
 systemctl status auditd.service > /root/rules2auditd.log
 auditctl -s >> /root/rules2auditd.log
