@@ -120,12 +120,17 @@ cat <<-'EOF'> /etc/audit/rules.d/audit.rules
 -a exit,always -F dir=/etc/NetworkManager/ -F perm=wa -k network_modifications
 
 ## Audit executive command 
--a exit,always -F arch=b32 -S execve -k auditcmd -F subj_type!=SYSCALL -F tty=(none)
--a exit,always -F arch=b64 -S execve -k auditcmd -F subj_type!=SYSCALL -F tty=(none)
+# As root
+-a exit,always -F arch=b64 -F euid=0 -S execve -k rootcmd
+-a exit,always -F arch=b32 -F euid=0 -S execve -k rootcmd
+
+-a exit,always -F arch=b32 -F auid>=1000 -S execve -k auditcmd -F subj_type!=SYSCALL -F tty=(none)
+-a exit,always -F arch=b64 -F auid>=1000 -S execve -k auditcmd -F subj_type!=SYSCALL -F tty=(none)
 
 ## BLOCK RULE EDITING 
 -e 2  
 EOF
+
 if [ $? -ne 0 ]; then
     print_FAIL
     exit 1
