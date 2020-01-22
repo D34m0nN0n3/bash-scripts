@@ -159,7 +159,7 @@ RESULT=$?
 
 function create_scriptcfg {
   pad "Creating script and config rules files for Netfilter's NFTable"
-cat /etc/nftables/custome-ruleset.nft
+cat << 'EOF' > /etc/nftables/custome-ruleset.nft
 #!/usr/sbin/nft -f
 # Copyright (C) 2020 Dmitriy Prigoda <deamon.none@gmail.com>
 # This script is free software: Everyone is permitted to copy and distribute verbatim copies of
@@ -296,4 +296,35 @@ table inet filter {
         }
 
 }
+EOF
 
+chmod u+x /etc/nftables/custome-ruleset.nft
+sed -i '$ a include \"\/etc\/nftables\/custome-ruleset.nft\"' /etc/sysconfig/nftables.conf
+RESULT=$?
+  if [ "${RESULT}" -ne 0 ]; then
+    print_FAIL
+    echo "Can't created script and config rules"
+    exit 1
+  fi
+  print_SUCCESS
+}
+
+function enable_nft {
+pad "Enable Netfilter's NFTable firewall"
+  for STARTACTION in {enable,start,status}
+  do
+  systemctl ${STARTACTION} nftables.service > /dev/null 2>&1
+  done
+  RESULT=$?
+  if [ "${RESULT}" -ne 0 ]; then
+    print_FAIL
+    echo "Can't disable Netfilter's NFTable firewall"
+    exit 1
+  fi
+  print_SUCCESS
+}
+
+kernel_settings ; create_scriptcfg && enable_nft
+
+#END
+exit 0
