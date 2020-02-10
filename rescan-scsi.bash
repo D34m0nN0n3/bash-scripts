@@ -10,9 +10,19 @@ if [[ $EUID -ne 0 ]]; then
    exit 1
 fi
 
-for BUS in /sys/class/scsi_host/host*/scan
+BUSSES=$(ls -l /sys/class/scsi_host/host* | grep -o host[0-9] | uniq)
+DEVICES=$(ls /sys/class/scsi_device/)
+
+for DEVICE in ${DEVICES}
 do
-   echo "- - -" >  ${BUS}
+  echo "RESCANNING DEVICE : ${DEVICE}"
+  echo 1 > /sys/class/scsi_device/${SCSI}/device/rescan
+done
+
+for BUS in ${BUSSES}
+do
+   echo "RESCANNING HOST BUS : ${BUS}"
+   echo "- - -" > /sys/class/scsi_host/${BUS}/scan
 done
 #End
 exit 0
