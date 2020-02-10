@@ -16,7 +16,7 @@ DEVICES=$(ls /sys/class/scsi_device/)
 for DEVICE in ${DEVICES}
 do
   echo "RESCANNING DEVICE : ${DEVICE}"
-  echo 1 > /sys/class/scsi_device/${SCSI}/device/rescan
+  echo 1 > /sys/class/scsi_device/${DEVICE}/device/rescan
 done
 
 for BUS in ${BUSSES}
