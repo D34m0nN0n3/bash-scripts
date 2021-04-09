@@ -3,7 +3,65 @@
 # This script is free software: Everyone is permitted to copy and distribute verbatim copies of 
 # the GNU General Public License as published by the Free Software Foundation, either version 3
 # of the License, but changing it is not allowed.
-# Create first boot service for registration on satellite.
+
+PACKAGES=( bash )
+
+if [[ $EUID -ne 0 ]]; then
+   echo "[-] This script must be run as root" 1>&2
+   exit 1
+fi
+
+function print_usage {
+cat <<EOF
+Creat service registration this client on Katello.
+     Options:
+        -s <service>       Specify server name or ip address server repository.
+        -k <key>           This activation key may be used during system registration.
+        -o <organization>  Specify organization name on Satellite/Katello server.
+        -p <puppet env>    Puppet main environment. (opcional)
+    
+     Example: bash firstboot-reg.bash -s <name> -k <key> -o <organization>
+EOF
+}
+
+ARGCHECK=$#
+RHS_SRV='null'
+RHS_ORG='null'
+RHS_AK='null'
+PUPPET_MAIN_ENV=''
+MINARG=3
+
+if [ "${ARGCHECK}" -lt "${MINARG}" ] ; then
+print_usage
+exit 1
+fi
+
+if [[ -z ${PUPPET_MAIN_ENV} ]]; then
+   PUPPET_MAIN_ENV='KT_GVC_Library_GVC_Puppet_Default_26'
+fi
+
+if [ "${ARGCHECK}" -gt "5" ]; then
+while getopts "s:k:o:p:" OPTION
+do
+     case $OPTION in
+         s) RHS_SRV=${OPTARG} ;;
+         k) RHS_AK=${OPTARG} ;;
+         o) RHS_ORG=${OPTARG} ;;
+         p) PUPPET_MAIN_ENV=${OPTARG} ;;
+         *) exit 1 ;;
+     esac
+done
+else
+while getopts "s:k:o:" OPTION
+do
+     case $OPTION in
+         s) RHS_SRV=${OPTARG} ;;
+         k) RHS_AK=${OPTARG} ;;
+         o) RHS_ORG=${OPTARG} ;;
+         *) exit 1 ;;
+     esac
+done
+fi
 
 cat << EOF > /usr/bin/check-network-boot-exist
 #!/usr/bin/env bash
@@ -12,12 +70,12 @@ cat << EOF > /usr/bin/check-network-boot-exist
 export LANG=en_US.UTF-8
 
 # Define some default values for this script
-
+. /etc/first-boot-reg.env
 CHECH_RHS_RESPONSE=$(curl -LI https://${RHS_SRV} -o /dev/null -w '%{http_code}\n' -s)
 
 # Main script
 if [[ $CHECH_RHS_RESPONSE != 000 ]]; then
-  /usr/bin/touch /.firstboot-reg
+  /usr/bin/touch /.firstboot-reg && echo '# See default values in file: /etc/first-boot-reg.env' > /.firstboot-reg
 else
   echo "No server connect" && exit 0
 fi
@@ -60,7 +118,7 @@ function panic {
 }
 
 # Define some default values for this script
-
+. /etc/first-boot-reg.env
 
 # Main script
 function disable_repo {
@@ -142,10 +200,10 @@ EOFF
 for SCRIPT in {check-network-boot-exist,first-boot-reg}; do chmod +x /usr/bin/${SCRIPT}; done
 
 cat <<- EOF > /etc/first-boot-reg.env
-RHS_SRV='null'
-RHS_ORG='null'
-RHS_AK='null'
-PUPPET_MAIN_ENV='null'
+RHS_SRV=${RHS_SRV}
+RHS_ORG=${RHS_ORG}
+RHS_AK=${RHS_AK}
+PUPPET_MAIN_ENV=${PUPPET_MAIN_ENV}
 EOF
 
 cat <<- EOF > /etc/systemd/system/systemd-firstboot-reg.service
@@ -159,7 +217,6 @@ ConditionPathExists=!/.firstboot-reg
 
 [Service]
 Type=oneshot
-EnvironmentFile=/etc/first-boot-reg.env
 TimeoutSec=0
 RemainAfterExit=yes
 StandardOutput=journal+console
