@@ -63,7 +63,7 @@ do
 done
 fi
 
-cat << EOF > /usr/bin/check-network-boot-exist
+cat << 'EOF' > /usr/bin/check-network-boot-exist
 #!/usr/bin/env bash
 # Export LANG so we get consistent results
 # For instance, fr_FR uses comma (,) as the decimal separator.
@@ -84,7 +84,7 @@ fi
 exit 0
 EOF
 
-cat << EOFF > /usr/bin/first-boot-reg
+cat << 'EOFF' > /usr/bin/first-boot-reg
 #!/usr/bin/env bash
 # Export LANG so we get consistent results
 # For instance, fr_FR uses comma (,) as the decimal separator.
@@ -146,7 +146,7 @@ restorecon -Rv ~foreman-proxy-user/.ssh/ > /dev/null 2>&1 ;
 }
 
 function add_sudoers {
-cat << 'EOF' > /etc/sudoers.d/foreman-proxy-user
+cat <<- 'EOF' > /etc/sudoers.d/foreman-proxy-user
 # User for remote execution features Katello
 foreman-proxy-user   ALL=NOPASSWD:   ALL
 EOF
@@ -206,7 +206,7 @@ RHS_AK=${RHS_AK}
 PUPPET_MAIN_ENV=${PUPPET_MAIN_ENV}
 EOF
 
-cat <<- EOF > /etc/systemd/system/systemd-firstboot-reg.service
+cat <<- 'EOF' > /etc/systemd/system/systemd-firstboot-reg.service
 [Unit]
 Description=First Boot registration on RHS
 Documentation=man:systemd-firstboot(1)
@@ -229,6 +229,6 @@ ExecStart=/usr/bin/first-boot-reg
 WantedBy=multi-user.target
 EOF
 
-systemctl systemctl daemon-reload
+systemctl daemon-reload && systemctl enable systemd-firstboot-reg.service
 # END
 exit 0
