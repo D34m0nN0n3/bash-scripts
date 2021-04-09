@@ -154,6 +154,8 @@ EOF
 
 if [ ! -f /.firstboot-reg ]; then
   echo "Check connect fail" && exit 0
+else
+  systemctl disable systemd-firstboot-reg && exit 0
 fi
 
 pad "Disable default repo:"
