@@ -43,7 +43,7 @@ PACKAGES=( bash )
 DOMAIN=$1
 FILE=$2
 DATE=$(date +%Y%m%d)
-SERNUM=$(grep -hE '[0-9]{9,10}' $FILE)
+SERNUM=$(grep -m 1 -o -hE '[0-9]{9,10}' $FILE)
 SERTMP="${DATE}00"
 SERNEW=''
 BIND=''
@@ -70,7 +70,7 @@ function print_INVALID {
 }
 
 function print_PASS {
-  echo -e "$@ \e[1;33mPASS\e[0;39m\n"
+  echo -e "$@ \e[1;32mPASS\e[0;39m\n"
   let pass_count++
   return 0
 }
@@ -94,36 +94,20 @@ function panic {
 }
 
 # Creat backup file ZONE.
-cp -p $FILE $FILE$DATE.bak > /dev/null 2>&1
-[[ -f $FILE$DATE.bak ]] && panic 1 "${FILE}${DATE}.bak does not exist"
+cp -p ${FILE} ${FILE}.${DATE}.bak > /dev/null 2>&1
+[[ ! -f ${FILE}.${DATE}.bak ]] && panic 1 "${FILE}.${DATE}.bak does not exist"
 
 # Run VIM in sudo to open the file.
 echo "Editing $FILE..."
-vim -c ":set tabstop=8" -c ":set shiftwidth=8" -c ":set noexpandtab" $FILE
+vim -c ":set tabstop=8" -c ":set shiftwidth=8" -c ":set noexpandtab" ${FILE}.${DATE}.bak
 echo -e "\t\t[OK]"
 echo ""
-# Check to make sure the syntax is correct before continuing.
-pad "Syntax check:"
-named-checkzone $DOMAIN $FILE > /dev/null 2>&1
-if [ $? -ne 0 ]; then 
-    print_INVALID
-    exit 1
-else
-    print_PASS
-fi
-# Continue to automatic functionality.
-read -p "Ready to commit? (y/n): " -e continue
-if [ "$continue" != "y" ]; then
-    echo "Changes will not be automatically committed, exiting."
-    exit
-fi
-echo ""
 # Force decimal representation, increment.
-if [ ${SERNUM} -lt ${DATE}00 ]; then
+if [ "${SERNUM}" -lt "${DATE}00" ]; then
     SERNEW="${DATE}01"
 else
     PREFIX=${SERNUM::-2}
-    if [ ${DATE} -eq ${PREFIX} ]; then
+    if [ "${DATE}" -eq "${PREFIX}" ]; then
       NUM=${SERNUM: -2}
       NUM=$((10#$NUM + 1))
       SERNEW="${DATE}$(printf '%02d' $NUM )"
@@ -132,7 +116,7 @@ else
     fi
 fi
 pad "Change serial number:"
-sed -i -e 's/'"$SERNUM"'/\t'"$SERNEW"'/' $FILE
+awk '/'${SERNUM}'/ && !done { sub(/'${SERNUM}'/, "'${SERNEW}'"); done=1}; 1' ${FILE}.${DATE}.bak > ${FILE}.tmp
 if [ $? -ne 0 ]; then 
     print_FAIL
     exit 1
@@ -141,17 +125,26 @@ else
 fi
 # Sanity check
 pad "Sanity check:"
-named-checkzone $DOMAIN $FILE > /dev/null 2>&1
+named-checkzone $DOMAIN ${FILE}.tmp > /dev/null 2>&1
 if [ $? -ne 0 ]; then
     print_INVALID
     echo -n "Sanity check failed, reverting to old SOA:"
-    mv $FILE$DATE.bak $FILE
+    rm -f ${FILE}.${DATE}.bak && rm -f ${FILE}.tmp;
     exit 1
 else
     print_PASS
-    rm -f $FILE$DATE.bak
 fi
-
+# Continue to automatic functionality.
+read -p "Ready to commit? " choice
+    while :
+      do
+        case "$choice" in
+            y|Y) mv ${FILE}.tmp ${FILE} && mv ${FILE}.${DATE}.bak /tmp/${FILE}.${DATE}; break;;
+            n|N) echo "Changes will not be automatically committed, exiting."; exit;;
+            * ) read -p "Please enter 'y' or 'n': " choice;;
+          esac
+      done
+echo ""
 # Restart BIND 
 pad "Restarting BIND:"
 function binding {
@@ -162,9 +155,8 @@ function binding {
 	echo Error! No service is active.
 	return 1
 }
-binding && systemctl restart $BIND > /dev/null 2>&1
+binding && rndc flush && rndc reload > /dev/null 2>&1
 if [ $? -ne 0 ]; then
-    print_FAIL
     exit 1
 else
     print_SUCCESS
