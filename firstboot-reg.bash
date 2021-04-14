@@ -105,6 +105,12 @@ function print_FAIL {
   return 0
 }
 
+function print_WARNING {
+  echo -e "$@ \e[1;33mWARNING\e[0;39m\n"
+  let warning_count++
+  return 0
+}
+
 function print_SUCCESS {
   echo -e "$@ \e[1;32mSUCCESS\e[0;39m\n"
   let success_count++
@@ -133,11 +139,15 @@ function rhs_reg {
 find /etc/yum.repos.d/ -type f -exec sed -i 's/enabled\ \=\ 1/enabled\ \= 0/' {} \; > /dev/null 2>&1 ;
 yum localinstall http://${RHS_SRV}/pub/katello-ca-consumer-latest.noarch.rpm -y > /dev/null 2>&1 &&
 subscription-manager register --org="${RHS_ORG}" --activationkey="${RHS_AK}" --force > /dev/null 2>&1 &&
-yum install katello-agent -y > /dev/null 2>&1 &&
-yum install puppet-agent -y > /dev/null 2>&1 && puppet config set server ${RHS_SRV} > /dev/null 2>&1 && puppet config set --section main environment ${PUPPET_MAIN_ENV} > /dev/null 2>&1 && puppet agent --test --noop > /dev/null 2>&1 ;
+yum install katello-agent -y > /dev/null 2>&1
+}
+
+function puppet_reg {
+yum install puppet-agent -y > /dev/null 2>&1 && puppet config set server ${RHS_SRV} > /dev/null 2>&1 && puppet config set --section main environment ${PUPPET_MAIN_ENV} > /dev/null 2>&1 && puppet agent --test --noop > /dev/null 2>&1
 }
 
 function add_foreman-proxy-user {
+userdel --remove foreman-proxy-user --force 2>&1 ;
 useradd --create-home --password $(python -c 'import crypt; print(crypt.crypt("$(base64 -w 16 /dev/urandom | tr -d /+ | head -n 1)"))') --comment "User for remote execution features Katello" --system foreman-proxy-user > /dev/null 2>&1 &&
 mkdir -p ~foreman-proxy-user/.ssh/ > /dev/null 2>&1 &&
 curl --insecure --output ~foreman-proxy-user/.ssh/authorized_keys https://${RHS_SRV}:9090/ssh/pubkey > /dev/null 2>&1 &&
@@ -155,7 +165,7 @@ EOF
 if [ ! -f /.firstboot-reg ]; then
   echo "Check connect fail" && exit 0
 else
-  systemctl disable systemd-firstboot-reg && exit 0
+  systemctl disable systemd-firstboot-reg
 fi
 
 pad "Disable default repo:"
@@ -172,6 +182,15 @@ rhs_reg
 if [ $? -ne 0 ]; then 
     print_FAIL
     exit 1
+else
+    print_SUCCESS
+fi
+
+pad "Puppet agent. Installation and registration"
+puppet_reg
+if [ $? -ne 0 ]; then 
+    print_WARNING
+    echo "Puppet not installed or not configured.
 else
     print_SUCCESS
 fi
