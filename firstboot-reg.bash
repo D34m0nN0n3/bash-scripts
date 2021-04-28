@@ -15,7 +15,7 @@ function print_usage {
 cat <<EOF
 Creat service registration this client on Katello.
      Options:
-        -s <service>       Specify server name or ip address server repository.
+        -s <server>       Specify server name or ip address server repository.
         -k <key>           This activation key may be used during system registration.
         -o <organization>  Specify organization name on Satellite/Katello server.
         -p <puppet env>    Puppet main environment. (opcional)
@@ -132,6 +132,7 @@ subscription-manager unregister > /dev/null 2>&1 ;
 subscription-manager clean > /dev/null 2>&1 ;
 yum-config-manager --disable * > /dev/null 2>&1 ;
 yum remove katello-ca-consumer* -y > /dev/null 2>&1 ;
+find /etc/yum.repos.d/ -type f -name CentOS* -exec sed -i 's/enabled\s*=\s*1/enabled\ \= 0/' {} \;
 sed -i 's,enabled\=1,enabled\=0,' /etc/yum/pluginconf.d/enabled_repos_upload.conf > /dev/null 2>&1 ;
 }
 
@@ -147,12 +148,21 @@ yum install puppet-agent -y > /dev/null 2>&1 && puppet config set server ${RHS_S
 }
 
 function add_foreman-proxy-user {
+RELEASE=$(cat /etc/system-release | awk '{print $4}' | awk -F"." '{print $1}')
 userdel --remove foreman-proxy-user --force 2>&1 ;
-useradd --create-home --password $(python -c 'import crypt; print(crypt.crypt("$(base64 -w 16 /dev/urandom | tr -d /+ | head -n 1)"))') --comment "User for remote execution features Katello" --system foreman-proxy-user > /dev/null 2>&1 &&
+if [[ $RELEASE == 8 ]]; then
+useradd --create-home --password $(python3.6 -c 'import crypt; print(crypt.crypt("$(base64 -w 16 /dev/urandom | tr -d /+ | head -n 1)"))') --comment "User for remote execution features Katello" --system foreman-proxy-user > /dev/null 2>&1
 mkdir -p ~foreman-proxy-user/.ssh/ > /dev/null 2>&1 &&
 curl --insecure --output ~foreman-proxy-user/.ssh/authorized_keys https://${RHS_SRV}:9090/ssh/pubkey > /dev/null 2>&1 &&
 chown foreman-proxy-user:foreman-proxy-user -R ~foreman-proxy-user/.ssh/ && chmod 600 ~foreman-proxy-user/.ssh/authorized_keys > /dev/null 2>&1 &&
 restorecon -Rv ~foreman-proxy-user/.ssh/ > /dev/null 2>&1 ;
+elif [[ $RELEASE == 7 ]]; then
+useradd --create-home --password $(python -c 'import crypt; print(crypt.crypt("$(base64 -w 16 /dev/urandom | tr -d /+ | head -n 1)"))') --comment "User for remote execution features Katello" --system foreman-proxy-user > /dev/null 2>&1
+mkdir -p ~foreman-proxy-user/.ssh/ > /dev/null 2>&1 &&
+curl --insecure --output ~foreman-proxy-user/.ssh/authorized_keys https://${RHS_SRV}:9090/ssh/pubkey > /dev/null 2>&1 &&
+chown foreman-proxy-user:foreman-proxy-user -R ~foreman-proxy-user/.ssh/ && chmod 600 ~foreman-proxy-user/.ssh/authorized_keys > /dev/null 2>&1 &&
+restorecon -Rv ~foreman-proxy-user/.ssh/ > /dev/null 2>&1 ;
+fi
 }
 
 function add_sudoers {
@@ -190,7 +200,7 @@ pad "Puppet agent. Installation and registration"
 puppet_reg
 if [ $? -ne 0 ]; then 
     print_WARNING
-    echo "Puppet not installed or not configured.
+    echo "Puppet not installed or not configured."
 else
     print_SUCCESS
 fi
